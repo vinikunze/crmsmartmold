@@ -4,6 +4,14 @@ export interface Env {
   ALLOWED_ORIGINS?: string;
   AI_MODEL?: string;
   ANTHROPIC_API_KEY?: string;
+  // Meta Lead Ads (receber leads dos formulários instantâneos)
+  META_APP_SECRET?: string;
+  META_VERIFY_TOKEN?: string;
+  META_PAGE_TOKEN?: string;
+  // Meta API de Conversões (devolver o resultado dos leads ao Pixel)
+  META_PIXEL_ID?: string;
+  META_CAPI_TOKEN?: string;
+  META_GRAPH_VERSION?: string;
 }
 
 export type Papel = 'admin' | 'vendedor';
@@ -44,6 +52,7 @@ export interface LeadRow {
   utm_medium: string | null;
   utm_campaign: string | null;
   integracao_id: number | null;
+  meta_lead_id: string | null;
   created_at: string;
   updated_at: string;
 }

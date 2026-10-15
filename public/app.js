@@ -1103,7 +1103,10 @@ async function viewIntegracoes(main, params) {
     <div class="card" style="margin-bottom:16px"><strong>Como funciona</strong>
       <ol class="steps small" style="margin-top:6px"><li>Crie uma integração e copie a URL do webhook gerada.</li><li>Na plataforma emissora, cadastre essa URL e selecione os eventos a enviar.</li>
       <li>Envie um evento de teste.</li><li>Volte aqui, mapeie os campos recebidos para os campos do CRM e escolha a etapa de entrada.</li><li>Salve e teste novamente (botão "Reprocessar").</li></ol></div>
+    <div id="meta-card"></div>
+    <h2 style="margin:20px 0 10px">Outras plataformas (webhook genérico)</h2>
     <div id="lista-integ"><p class="muted">Carregando…</p></div>`;
+  cartaoMeta($('#meta-card')).catch(erroToast);
   $('#btn-nova').addEventListener('click', () => {
     const m = abrirModal(`<form id="f-integ" style="display:flex;flex-direction:column;gap:12px"><h2>Nova integração</h2>
       <label class="field">Nome da plataforma<input class="input" name="nome" placeholder="Ex.: Hotmart" required /></label>
@@ -1132,6 +1135,69 @@ async function viewIntegracoes(main, params) {
         .join('')}</tbody></table></div>`
     : `<div class="card empty">Nenhuma integração ainda.</div>`;
   $$('tr[data-integ]').forEach((tr) => tr.addEventListener('click', () => (location.hash = `#/integracoes/${tr.dataset.integ}`)));
+}
+
+async function cartaoMeta(el) {
+  const m = await api('/api/meta-ads');
+  const item = (ok, nome, desc) =>
+    `<li><span class="tag" style="background:${ok ? 'var(--ok-bg)' : 'var(--warn-bg)'};color:${ok ? 'var(--ok)' : 'var(--warn)'}">${ok ? '✓ configurado' : 'pendente'}</span> <span class="mono">${nome}</span> <span class="muted">— ${desc}</span></li>`;
+  el.innerHTML = `<div class="card">
+    <div class="page-head" style="margin-bottom:6px"><div><h2>Meta Ads (Facebook e Instagram)</h2>
+      <p class="small">Leads dos formulários instantâneos entram sozinhos no CRM, e o resultado de cada lead volta para o Pixel.</p></div></div>
+    <div class="grid grid-2">
+      <div><strong>Receber leads (Lead Ads)</strong>
+        <ul class="small" style="padding-left:0;list-style:none;display:flex;flex-direction:column;gap:6px;margin:8px 0">
+          ${item(m.leads.app_secret, 'META_APP_SECRET', 'chave secreta do app')}
+          ${item(m.leads.verify_token, 'META_VERIFY_TOKEN', 'texto de verificação escolhido por você')}
+          ${item(m.leads.page_token, 'META_PAGE_TOKEN', 'token permanente da página')}
+        </ul>
+        <label class="field">URL do webhook (cadastre no app da Meta, objeto "Page", campo "leadgen")
+          <div class="copy-row"><input class="input" readonly value="${esc(m.webhook_url)}" /><button class="btn" type="button" id="m-copiar">Copiar</button></div></label>
+      </div>
+      <div><strong>Devolver resultados ao Pixel (API de Conversões)</strong>
+        <ul class="small" style="padding-left:0;list-style:none;display:flex;flex-direction:column;gap:6px;margin:8px 0">
+          ${item(m.capi.pixel_id, 'META_PIXEL_ID', 'ID do pixel / conjunto de dados')}
+          ${item(m.capi.capi_token, 'META_CAPI_TOKEN', 'token da API de Conversões')}
+        </ul>
+        <p class="small muted" style="margin:0">Eventos enviados: <b>Lead A/B/C</b> após a classificação, o <b>nome da etapa</b> a cada avanço no funil e <b>Purchase</b> (com o valor estimado) quando o lead vira Ganho.</p>
+      </div>
+    </div>
+    <form id="m-teste" class="actions" style="margin-top:14px">
+      <input class="input" name="codigo_teste" placeholder="Código de teste (Gerenciador de Eventos → Eventos de teste)" style="max-width:360px" />
+      <button class="btn" type="submit">Testar conexão</button>
+    </form>
+    <div id="m-resultado" class="alert hidden" style="margin-top:10px"></div>
+    ${
+      m.eventos.length
+        ? `<details style="margin-top:12px"><summary class="small">Histórico recente (${m.eventos.length})</summary><div class="table-wrap" style="margin-top:8px"><table><thead><tr><th>Quando</th><th>Tipo</th><th>Status</th><th>Detalhe</th></tr></thead><tbody>${m.eventos
+            .map(
+              (e) => `<tr style="cursor:default"><td class="nowrap">${fmtDataHora(e.created_at)}</td><td>${e.tipo === 'webhook' ? 'Lead recebido' : 'Evento ao Pixel'}</td><td>${esc(e.status)}</td><td class="small">${esc(e.detalhe || '')}${
+                e.lead_id ? ` <a href="#" data-ver-lead="${e.lead_id}">ver lead</a>` : ''
+              }</td></tr>`,
+            )
+            .join('')}</tbody></table></div></details>`
+        : ''
+    }
+  </div>`;
+  $('#m-copiar', el).addEventListener('click', () => copiar(m.webhook_url));
+  $$('[data-ver-lead]', el).forEach((a) =>
+    a.addEventListener('click', (e) => {
+      e.preventDefault();
+      abrirLead(Number(a.dataset.verLead));
+    }),
+  );
+  $('#m-teste', el).addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const box = $('#m-resultado', el);
+    try {
+      const r = await api('/api/meta-ads/teste', { method: 'POST', body: Object.fromEntries(new FormData(e.target)) });
+      box.className = 'alert ok';
+      box.innerHTML = `<div><b>Página:</b> ${esc(r.pagina)}</div><div><b>Pixel:</b> ${esc(r.pixel)}</div>`;
+    } catch (err) {
+      box.className = 'alert error';
+      box.textContent = err.message;
+    }
+  });
 }
 
 const EXEMPLO_HOTMART = {

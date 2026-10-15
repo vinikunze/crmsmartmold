@@ -27,7 +27,7 @@ export type DadosLead = Partial<Record<CampoLead, string>>;
 const ALIASES: Record<CampoLead, string[]> = {
   nome: ['nome', 'name', 'nome_completo', 'your_name', 'full_name', 'seu_nome', 'first_name'],
   email: ['email', 'e_mail', 'your_email', 'seu_email', 'mail'],
-  telefone: ['telefone', 'whatsapp', 'celular', 'phone', 'fone', 'tel', 'your_phone', 'telefone_whatsapp'],
+  telefone: ['telefone', 'whatsapp', 'celular', 'phone', 'phone_number', 'fone', 'tel', 'your_phone', 'telefone_whatsapp'],
   cidade: ['cidade', 'city', 'municipio', 'cidade_uf', 'localidade', 'cidade_da_obra'],
   uf: ['uf', 'estado', 'state'],
   perfil: ['perfil', 'voce_e', 'tipo_cliente', 'tipo_de_cliente', 'segmento', 'profile', 'quem_e_voce', 'atuacao'],
@@ -41,6 +41,15 @@ const ALIASES: Record<CampoLead, string[]> = {
   utm_medium: ['utm_medium'],
   utm_campaign: ['utm_campaign'],
 };
+
+const PALAVRAS_CHAVE: [CampoLead, string[]][] = [
+  ['perfil', ['voce_e', 'perfil', 'segmento', 'tipo_de_cliente', 'quem_e']],
+  ['volume', ['tamanho', 'metragem', 'quantidade', 'volume', 'm2', 'm_2']],
+  ['prazo', ['prazo', 'quando', 'previsao', 'pretende_comprar']],
+  ['produto', ['produto', 'interesse']],
+  ['tipo_obra', ['tipo_de_obra', 'tipo_da_obra', 'finalidade']],
+  ['cidade', ['cidade', 'municipio']],
+];
 
 /** "form_fields[Seu Nome]" -> "seu_nome" */
 export function chaveNormalizada(chave: string): string {
@@ -76,6 +85,16 @@ export function normalizarFormulario(bruto: Record<string, unknown>): { dados: D
       const v = porChave.get(alias);
       if (v) {
         dados[campo] = v;
+        break;
+      }
+    }
+  }
+  // Perguntas personalizadas (ex.: formulários da Meta) com nomes livres: busca por palavra-chave
+  for (const [campo, termos] of PALAVRAS_CHAVE) {
+    if (dados[campo]) continue;
+    for (const [chave, valor] of porChave) {
+      if (termos.some((t) => chave.includes(t))) {
+        dados[campo] = valor;
         break;
       }
     }

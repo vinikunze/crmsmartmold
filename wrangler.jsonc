@@ -23,8 +23,12 @@
     // Origens autorizadas a enviar o formulário público (separadas por vírgula)
     "ALLOWED_ORIGINS": "https://smartmoldbrasil.com.br,https://www.smartmoldbrasil.com.br",
     // Modelo usado na classificação por IA (só é chamado se o secret ANTHROPIC_API_KEY existir)
-    "AI_MODEL": "claude-opus-5-5"
+    "AI_MODEL": "claude-opus-5-5",
+    // Pixel (conjunto de dados) da Meta que recebe os eventos da API de Conversões
+    "META_PIXEL_ID": "2169887366891051"
   }
   // Secrets (configure com `npx wrangler secret put NOME`):
   //   ANTHROPIC_API_KEY  -> ativa a classificação por IA (opcional; sem ela, valem as regras)
+  //   META_APP_SECRET, META_VERIFY_TOKEN, META_PAGE_TOKEN -> recebe leads do Meta Lead Ads
+  //   META_CAPI_TOKEN    -> envia eventos ao Pixel pela API de Conversões
 }

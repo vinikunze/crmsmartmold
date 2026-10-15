@@ -26,6 +26,8 @@ import {
   reprocessarEvento,
 } from './integrations.ts';
 import { iaAtiva } from './ai.ts';
+import { garantirEsquema } from './schema.ts';
+import { metaCapiAtivo, metaLeadsAtivo, receberWebhookMeta, statusMeta, testarMeta, verificarWebhookMeta } from './meta.ts';
 
 function origensPermitidas(env: Env): string[] {
   return (env.ALLOWED_ORIGINS || '')
@@ -76,20 +78,30 @@ type Handler = (ctx: { request: Request; env: Env; ctx: ExecutionContext; user: 
 
 const rotas: [string, RegExp, Handler][] = [
   ['GET', /^\/api\/meta$/, async ({ env }) =>
-    json({ etapas: ETAPAS, criterios: CRITERIOS_TEXTO, limiares: LIMIARES, cidades_atendidas: CIDADES_ATENDIDAS, ia_ativa: iaAtiva(env) })],
+    json({
+      etapas: ETAPAS,
+      criterios: CRITERIOS_TEXTO,
+      limiares: LIMIARES,
+      cidades_atendidas: CIDADES_ATENDIDAS,
+      ia_ativa: iaAtiva(env),
+      meta_leads_ativo: metaLeadsAtivo(env),
+      meta_capi_ativo: metaCapiAtivo(env),
+    })],
   ['GET', /^\/api\/stats$/, async ({ env }) => estatisticas(env)],
   ['GET', /^\/api\/leads$/, async ({ env, url }) => listarLeads(env, url)],
   ['GET', /^\/api\/leads\/export\.csv$/, async ({ env, url }) => exportarCsv(env, url)],
   ['POST', /^\/api\/leads$/, async ({ request, env, ctx, user }) => criarLeadManual(request, env, ctx, user)],
   ['GET', /^\/api\/leads\/(\d+)$/, async ({ env, params }) => obterLead(env, Number(params[0]))],
-  ['PATCH', /^\/api\/leads\/(\d+)$/, async ({ request, env, user, params }) => atualizarLead(request, env, user, Number(params[0]))],
+  ['PATCH', /^\/api\/leads\/(\d+)$/, async ({ request, env, ctx, user, params }) => atualizarLead(request, env, ctx, user, Number(params[0]))],
   ['DELETE', /^\/api\/leads\/(\d+)$/, async ({ env, user, params }) => excluirLead(env, user, Number(params[0]))],
   ['POST', /^\/api\/leads\/(\d+)\/notas$/, async ({ request, env, user, params }) => adicionarNota(request, env, user, Number(params[0]))],
-  ['POST', /^\/api\/leads\/(\d+)\/reclassificar$/, async ({ env, user, params }) => reclassificar(env, user, Number(params[0]))],
+  ['POST', /^\/api\/leads\/(\d+)\/reclassificar$/, async ({ env, ctx, user, params }) => reclassificar(env, ctx, user, Number(params[0]))],
   ['GET', /^\/api\/usuarios$/, async ({ env, user }) => listarUsuarios(env, user)],
   ['POST', /^\/api\/usuarios$/, async ({ request, env, user }) => criarUsuario(request, env, user)],
   ['PATCH', /^\/api\/usuarios\/(\d+)$/, async ({ request, env, user, params }) => atualizarUsuario(request, env, user, Number(params[0]))],
   ['DELETE', /^\/api\/usuarios\/(\d+)$/, async ({ env, user, params }) => excluirUsuario(env, user, Number(params[0]))],
+  ['GET', /^\/api\/meta-ads$/, async ({ request, env, user }) => statusMeta(request, env, user)],
+  ['POST', /^\/api\/meta-ads\/teste$/, async ({ request, env, user }) => testarMeta(request, env, user)],
   ['GET', /^\/api\/integracoes$/, async ({ request, env, user }) => listarIntegracoes(request, env, user)],
   ['POST', /^\/api\/integracoes$/, async ({ request, env, user }) => criarIntegracao(request, env, user)],
   ['GET', /^\/api\/integracoes\/(\d+)$/, async ({ request, env, user, params }) => obterIntegracao(request, env, user, Number(params[0]))],
@@ -108,6 +120,11 @@ async function rotear(request: Request, env: Env, ctx: ExecutionContext): Promis
   if (pathname === '/api/public/leads') {
     if (metodo === 'OPTIONS') return new Response(null, { status: 204, headers: cors(request, env) });
     if (metodo === 'POST') return receberFormulario(request, env, ctx);
+    throw new HttpError(405, 'Método não permitido');
+  }
+  if (pathname === '/api/meta/webhook') {
+    if (metodo === 'GET') return verificarWebhookMeta(url, env);
+    if (metodo === 'POST') return receberWebhookMeta(request, env, ctx);
     throw new HttpError(405, 'Método não permitido');
   }
   const webhook = pathname.match(/^\/api\/webhooks\/([A-Za-z0-9_-]{16,})$/);
@@ -142,6 +159,7 @@ export default {
     const url = new URL(request.url);
     if (!url.pathname.startsWith('/api/')) return env.ASSETS.fetch(request);
     try {
+      await garantirEsquema(env);
       return await rotear(request, env, ctx);
     } catch (err) {
       const extra = url.pathname === '/api/public/leads' ? cors(request, env) : {};

@@ -67,3 +67,22 @@ test('regras condicionais definem a etapa', () => {
   assert.equal(etapaPorRegras(hotmart, regras, 'novo'), 'ganho');
   assert.equal(etapaPorRegras({ data: { purchase: { status: 'CANCELED' } } }, regras, 'novo'), 'novo');
 });
+
+test('reconhece os campos de um formulário instantâneo da Meta', () => {
+  const { dados } = normalizarFormulario({
+    full_name: 'Carlos Obras',
+    phone_number: '+5538999998888',
+    email: 'carlos@obras.com',
+    city: 'Três Marias',
+    'você_é?': 'Construtora / empreiteira',
+    qual_o_tamanho_da_obra: '200 a 1.000 m²',
+    quando_pretende_comprar_os_blocos: 'Em até 30 dias',
+  });
+  assert.equal(dados.nome, 'Carlos Obras');
+  assert.equal(dados.telefone, '+5538999998888');
+  assert.equal(dados.cidade, 'Três Marias');
+  assert.equal(dados.perfil, 'Construtora / empreiteira');
+  assert.equal(dados.volume, '200 a 1.000 m²');
+  assert.equal(dados.prazo, 'Em até 30 dias');
+  assert.equal(classificarPorRegras(dados).categoria, 'A');
+});
