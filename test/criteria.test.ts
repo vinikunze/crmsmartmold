@@ -1,46 +1,24 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { classificarPorRegras, quantidadeBlocos } from '../src/criteria.ts';
+import { classificarPorRegras } from '../src/criteria.ts';
 import { aplicarMapeamento, etapaPorRegras, listarCaminhos, normalizarFormulario } from '../src/mapping.ts';
 
-test('construtora com obra grande, compra imediata e na região é Lead A', () => {
-  const r = classificarPorRegras({ perfil: 'Construtora / empreiteira', volume: 'Acima de 1.000 m²', prazo: 'Imediato', cidade: 'Paracatu' });
-  assert.equal(r.categoria, 'A');
-  assert.equal(r.score, 100);
+test('cidade da região atendida é Lead A', () => {
+  assert.equal(classificarPorRegras({ cidade: 'Paracatu' }).categoria, 'A');
+  assert.equal(classificarPorRegras({ cidade: 'joao pinheiro - MG' }).categoria, 'A');
+  assert.equal(classificarPorRegras({ cidade: 'Três Marias', uf: 'MG' }).categoria, 'A');
 });
 
-test('pessoa física com obra média em 30 dias na região é Lead B', () => {
-  const r = classificarPorRegras({ perfil: 'Pessoa física (obra própria)', volume: '50 a 200 m²', prazo: 'Em até 30 dias', cidade: 'João Pinheiro' });
-  assert.equal(r.categoria, 'B');
-  assert.equal(r.score, 55);
+test('outra cidade de MG, ou sem estado, é Lead B', () => {
+  assert.equal(classificarPorRegras({ cidade: 'Uberlândia', uf: 'MG' }).categoria, 'B');
+  assert.equal(classificarPorRegras({ cidade: 'Belo Horizonte - MG' }).categoria, 'B');
+  assert.equal(classificarPorRegras({ cidade: 'Uberlândia' }).categoria, 'B');
 });
 
-test('curioso com obra pequena fora da região é Lead C', () => {
-  const r = classificarPorRegras({ perfil: 'Pessoa física', volume: 'Até 50 m²', prazo: 'Apenas pesquisando', cidade: 'Curitiba', uf: 'PR' });
-  assert.equal(r.categoria, 'C');
-});
-
-test('cidade sem acento e com UF é reconhecida como região atendida', () => {
-  const r = classificarPorRegras({ cidade: 'joao pinheiro - MG' });
-  assert.match(r.motivo, /região atendida \(\+10\)/);
-});
-
-test('quantidade de blocos aceita as opções do formulário, texto livre e m² de parede', () => {
-  assert.equal(quantidadeBlocos('Até 1.000 blocos'), 1000);
-  assert.equal(quantidadeBlocos('3.000 a 10.000 blocos'), 10000);
-  assert.ok(quantidadeBlocos('Acima de 10.000 blocos')! > 10000);
-  assert.equal(quantidadeBlocos('uns 5 mil blocos'), 5000);
-  assert.equal(quantidadeBlocos('300 m²'), 3750);
-  assert.equal(quantidadeBlocos('80'), 1000);
-  assert.equal(quantidadeBlocos('não sei'), null);
-});
-
-test('faixas de blocos pontuam de 5 a 40', () => {
-  const pts = (v: string) => Number(classificarPorRegras({ volume: v }).motivo.match(/\(\+(\d+)\)/)![1]);
-  assert.equal(pts('Até 1.000 blocos'), 5);
-  assert.equal(pts('1.000 a 3.000 blocos'), 15);
-  assert.equal(pts('3.000 a 10.000 blocos'), 30);
-  assert.equal(pts('Acima de 10.000 blocos'), 40);
+test('outro estado ou sem cidade é Lead C', () => {
+  assert.equal(classificarPorRegras({ cidade: 'Curitiba', uf: 'PR' }).categoria, 'C');
+  assert.equal(classificarPorRegras({ cidade: 'Goiânia - GO' }).categoria, 'C');
+  assert.equal(classificarPorRegras({}).categoria, 'C');
 });
 
 test('normaliza nomes de campo do Elementor e do formulário', () => {

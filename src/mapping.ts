@@ -99,15 +99,16 @@ export function normalizarFormulario(bruto: Record<string, unknown>): { dados: D
       }
     }
   }
-  if (!dados.uf && dados.cidade) {
-    const m = dados.cidade.match(/^(.*?)\s*[-/,]\s*([A-Za-z]{2})$/);
-    if (m) {
-      dados.cidade = m[1].trim();
-      dados.uf = m[2].toUpperCase();
-    }
-  }
+  if (dados.cidade) Object.assign(dados, separarCidadeUf(dados.cidade, dados.uf));
   if (dados.email) dados.email = dados.email.toLowerCase();
   return { dados, respostas };
+}
+
+/** "Paracatu - MG" -> { cidade: "Paracatu", uf: "MG" } (mantém a UF informada à parte, se houver). */
+export function separarCidadeUf(cidade: string, uf?: string | null): { cidade: string; uf?: string } {
+  const m = cidade.match(/^(.*?)\s*[-/,]\s*([A-Za-z]{2})$/);
+  if (m) return { cidade: m[1].trim(), uf: m[2].toUpperCase() };
+  return uf ? { cidade: cidade.trim(), uf } : { cidade: cidade.trim() };
 }
 
 /** Lê um valor por caminho "data.buyer.name" ou "items[0].name". */

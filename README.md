@@ -7,7 +7,7 @@ Roda inteiro na Cloudflare: **Worker** (API + painel) e banco **D1** (`crmsmartm
 ## Funcionalidades
 
 - **Entrada de leads** pelo formulário do site (`POST /api/public/leads`, JSON ou formulário HTML), com proteção anti-robô (campo isca), limite por IP e CORS restrito ao domínio do site. Contatos repetidos (mesmo e-mail ou telefone) atualizam o lead em aberto em vez de duplicar.
-- **Qualificação A/B/C** por pontuação (0–100) com base na quantidade de blocos (ou m² de parede), perfil do cliente, prazo de compra e região atendida — regras em [`src/criteria.ts`](src/criteria.ts). Opcionalmente, a **IA (Claude)** lê todas as respostas e refina a classificação com uma justificativa.
+- **Qualificação A/B/C** pela cidade: região atendida pela fábrica = A, outra cidade de MG = B, outro estado = C — regras em [`src/criteria.ts`](src/criteria.ts). A categoria pode ser ajustada manualmente.
 - **Pipeline** com 10 etapas: Novo lead → Em contato → Call agendada → Call realizada → Visita técnica → Follow-up → Proposta enviada → Negociação → Ganho / Perdido (com motivo da perda). Quadro com arrastar-e-soltar.
 - **Busca e filtros** por nome, cidade, e-mail, telefone, categoria, etapa, cidade, origem, responsável e período; **exportação CSV** (abre direto no Excel).
 - **Ficha do lead**: respostas originais, motivo da classificação, responsável, valor estimado, histórico e anotações, atalhos para WhatsApp/ligação/e-mail.
@@ -76,7 +76,7 @@ Configurações em [`wrangler.jsonc`](wrangler.jsonc):
 
 ## Conectando o formulário do site
 
-No painel, menu **Formulário do site**, há o endereço de envio e um formulário HTML pronto para colar na landing page. Os campos reconhecidos são `nome`, `telefone`/`whatsapp`, `email`, `cidade`, `uf`, `perfil`, `produto`, `tipo_obra`, `volume`/`metragem`/`quantidade`, `prazo`, `mensagem` e `utm_*` (os nomes do Elementor, como `form_fields[name]`, também funcionam). Há ainda uma página de teste em `/formulario-exemplo.html`.
+No painel, menu **Formulário do site**, há o endereço de envio e um formulário HTML pronto para colar na landing page. O formulário pede apenas `nome`, `telefone` e `cidade` (a cidade pode vir com o estado, ex.: "Paracatu - MG"). Há ainda uma página de teste em `/formulario-exemplo.html`.
 
 ## Segurança antes de usar com dados reais
 
