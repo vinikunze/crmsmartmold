@@ -85,7 +85,6 @@ test('reconhece os campos de um formulário instantâneo da Meta', () => {
     city: 'Três Marias',
     'você_é?': 'Construtora / empreiteira',
     quantos_blocos_voce_precisa: '3.000 a 10.000 blocos',
-    qual_tipo_de_bloco: 'Bloco estrutural 14 cm',
     quando_pretende_comprar_os_blocos: 'Em até 30 dias',
   });
   assert.equal(dados.nome, 'Carlos Obras');
@@ -93,7 +92,6 @@ test('reconhece os campos de um formulário instantâneo da Meta', () => {
   assert.equal(dados.cidade, 'Três Marias');
   assert.equal(dados.perfil, 'Construtora / empreiteira');
   assert.equal(dados.volume, '3.000 a 10.000 blocos');
-  assert.equal(dados.produto, 'Bloco estrutural 14 cm');
   assert.equal(dados.prazo, 'Em até 30 dias');
   assert.equal(classificarPorRegras(dados).categoria, 'A');
 });

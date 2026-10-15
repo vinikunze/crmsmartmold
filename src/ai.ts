@@ -2,9 +2,8 @@ import Anthropic from '@anthropic-ai/sdk';
 import type { Env } from './types.ts';
 import { CIDADES_ATENDIDAS, CRITERIOS_TEXTO, LIMIARES, categoriaPorScore, type Classificacao } from './criteria.ts';
 
-const SYSTEM = `Você qualifica leads comerciais da Smart Mold, fábrica de blocos de concreto
-(blocos de vedação e estruturais, meio-blocos e canaletas) com sede em João Pinheiro (MG).
-A empresa vende somente blocos de concreto.
+const SYSTEM = `Você qualifica leads comerciais da Smart Mold, fábrica com sede em João Pinheiro (MG)
+que vende um único produto: bloco de concreto.
 
 Região atendida pela fábrica: ${CIDADES_ATENDIDAS.join(', ')}.
 
