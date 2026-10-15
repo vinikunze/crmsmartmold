@@ -15,6 +15,21 @@ Roda inteiro na Cloudflare: **Worker** (API + painel) e banco **D1** (`crmsmartm
 - **Usuários e papéis**: o administrador convida pessoas (senha provisória), define papel (**Administrador** ou **Vendedor**), redefine senha, desbloqueia, desativa ou remove. Áreas de usuários, integrações e exclusão de leads são restritas a administradores.
 - **Integrações por webhook** (Hotmart, RD Station, Typeform, Elementor, Zapier…): gera a URL, recebe um evento de teste, permite **mapear** os campos recebidos para os campos do CRM, definir a etapa de entrada e **condições** (ex.: `data.purchase.status = APPROVED` → Ganho) e reprocessar eventos para validar.
 
+## Meta Ads (Facebook e Instagram)
+
+- **Receber leads** dos formulários instantâneos: webhook em `/api/meta/webhook` (verificação `hub.challenge`, assinatura `X-Hub-Signature-256`, deduplicação). O CRM busca os dados do lead na Graph API, classifica e guarda campanha, conjunto e anúncio de origem.
+- **API de Conversões**: envia ao Pixel `Lead A/B/C` após a classificação, o nome da etapa a cada avanço no funil e `Purchase` (com o valor estimado) em Ganho. Usa `lead_id` da Meta quando o lead veio de lá, e e-mail/telefone/nome/cidade com hash SHA-256.
+- Status, URL do webhook, botão de teste e histórico ficam em **Integrações → Meta Ads**.
+
+Configuração (secrets do Worker; o `META_PIXEL_ID` já está no `wrangler.jsonc`):
+
+| Secret | O que é |
+|---|---|
+| `META_APP_SECRET` | Chave secreta do app (developers.facebook.com → Configurações do app → Básico) |
+| `META_VERIFY_TOKEN` | Texto qualquer escolhido por você; o mesmo vai no cadastro do webhook na Meta |
+| `META_PAGE_TOKEN` | Token permanente da página (usuário do sistema com `leads_retrieval`, `pages_show_list`, `pages_read_engagement`, `pages_manage_metadata`) |
+| `META_CAPI_TOKEN` | Token da API de Conversões (Gerenciador de Eventos → pixel → Configurações) |
+
 ## Estrutura
 
 ```
@@ -27,6 +42,8 @@ src/             Worker (API)
   leads.ts       leads, filtros, CSV, painel
   users.ts       gestão de usuários
   integrations.ts webhooks
+  meta.ts        Meta Lead Ads + API de Conversões
+  schema.ts      atualizações automáticas do banco
 public/          painel web (HTML/CSS/JS, sem build)
 migrations/      esquema do banco D1
 scripts/criar-admin.mjs  cria/redefine um administrador

@@ -4,6 +4,7 @@ import { ETAPAS, ETAPAS_FECHADAS, ETAPA_IDS, classificarPorRegras, nomeEtapa } f
 import { apenasDigitos, CAMPOS_LEAD, type DadosLead } from './mapping.ts';
 import { classificarComIA } from './ai.ts';
 import { exigirAdmin } from './auth.ts';
+import { enviarEventoMeta } from './meta.ts';
 
 export interface NovaEntrada {
   dados: DadosLead;
@@ -12,6 +13,7 @@ export interface NovaEntrada {
   etapa?: string;
   integracaoId?: number | null;
   userId?: number | null;
+  metaLeadId?: string | null;
 }
 
 function numero(v: unknown): number | null {
@@ -24,6 +26,19 @@ async function registrarEvento(env: Env, leadId: number, tipo: string, descricao
   await env.DB.prepare('INSERT INTO lead_events (lead_id, tipo, descricao, user_id) VALUES (?, ?, ?, ?)')
     .bind(leadId, tipo, descricao.slice(0, 2000), userId)
     .run();
+}
+
+/** Informa ao Pixel da Meta a categoria atual do lead (evento "Lead A", "Lead B" ou "Lead C"). */
+async function enviarCategoriaMeta(env: Env, leadId: number) {
+  const lead = await env.DB.prepare('SELECT categoria FROM leads WHERE id = ?').bind(leadId).first<{ categoria: string }>();
+  if (lead) await enviarEventoMeta(env, leadId, `Lead ${lead.categoria}`);
+}
+
+/** Informa ao Pixel da Meta o avanço no funil (nome da etapa; "Ganho" também envia Purchase com o valor). */
+async function enviarEtapaMeta(env: Env, leadId: number, etapa: string) {
+  const lead = await env.DB.prepare('SELECT valor_estimado FROM leads WHERE id = ?').bind(leadId).first<{ valor_estimado: number | null }>();
+  await enviarEventoMeta(env, leadId, nomeEtapa(etapa), { valor: lead?.valor_estimado });
+  if (etapa === 'ganho') await enviarEventoMeta(env, leadId, 'Purchase', { valor: lead?.valor_estimado });
 }
 
 /** Reclassifica com a IA em segundo plano, se ela estiver configurada. */
@@ -85,7 +100,7 @@ export async function criarOuAtualizarLead(env: Env, ctx: ExecutionContext, entr
     await env.DB.prepare(
       `UPDATE leads SET nome = ?, email = ?, telefone = ?, telefone_digitos = ?, cidade = ?, uf = ?, perfil = ?, produto = ?,
          tipo_obra = ?, volume = ?, prazo = ?, mensagem = ?, respostas = ?, categoria = ?, score = ?, classificacao_motivo = ?,
-         classificado_por = ?, updated_at = ? WHERE id = ?`,
+         classificado_por = ?, meta_lead_id = COALESCE(meta_lead_id, ?), updated_at = ? WHERE id = ?`,
     )
       .bind(
         existente.nome && existente.nome !== 'Sem nome' ? existente.nome : nome,
@@ -105,6 +120,7 @@ export async function criarOuAtualizarLead(env: Env, ctx: ExecutionContext, entr
         manual ? existente.score : regras.score,
         manual ? existente.classificacao_motivo : regras.motivo,
         manual ? 'manual' : 'regras',
+        entrada.metaLeadId ?? null,
         nowIso(),
         existente.id,
       )
@@ -119,8 +135,8 @@ export async function criarOuAtualizarLead(env: Env, ctx: ExecutionContext, entr
   const res = await env.DB.prepare(
     `INSERT INTO leads (nome, email, telefone, telefone_digitos, cidade, uf, origem, perfil, produto, tipo_obra, volume, prazo,
        mensagem, respostas, categoria, score, classificacao_motivo, classificado_por, etapa, valor_estimado,
-       utm_source, utm_medium, utm_campaign, integracao_id, responsavel_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'regras', ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+       utm_source, utm_medium, utm_campaign, integracao_id, responsavel_id, meta_lead_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'regras', ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
   )
     .bind(
       nome.slice(0, 200),
@@ -147,11 +163,12 @@ export async function criarOuAtualizarLead(env: Env, ctx: ExecutionContext, entr
       d.utm_campaign ?? null,
       entrada.integracaoId ?? null,
       entrada.userId ?? null,
+      entrada.metaLeadId ?? null,
     )
     .first<{ id: number }>();
   const id = res!.id;
   await registrarEvento(env, id, 'criado', `Lead recebido via ${entrada.origem} — classificado como Lead ${regras.categoria} (${regras.score} pts) pelas regras. Etapa: ${nomeEtapa(etapa)}.`, entrada.userId ?? null);
-  ctx.waitUntil(refinarComIA(env, id));
+  ctx.waitUntil(refinarComIA(env, id).finally(() => enviarCategoriaMeta(env, id)));
   return { id, novo: true };
 }
 
@@ -315,7 +332,7 @@ export async function obterLead(env: Env, id: number): Promise<Response> {
 
 const EDITAVEIS = ['nome', 'email', 'telefone', 'cidade', 'uf', 'origem', 'perfil', 'produto', 'tipo_obra', 'volume', 'prazo', 'mensagem', 'motivo_perda'];
 
-export async function atualizarLead(request: Request, env: Env, user: SessionUser, id: number): Promise<Response> {
+export async function atualizarLead(request: Request, env: Env, ctx: ExecutionContext, user: SessionUser, id: number): Promise<Response> {
   const body = await readBody(request);
   const lead = await env.DB.prepare('SELECT * FROM leads WHERE id = ?').bind(id).first<LeadRow>();
   if (!lead) throw new HttpError(404, 'Lead não encontrado');
@@ -369,6 +386,8 @@ export async function atualizarLead(request: Request, env: Env, user: SessionUse
   await env.DB.prepare(`UPDATE leads SET ${sets.join(', ')} WHERE id = ?`).bind(...params, id).run();
   if (!eventos.length && sets.length > 1) eventos.push(['edicao', 'Dados do lead editados.']);
   for (const [tipo, desc] of eventos) await registrarEvento(env, id, tipo, desc, user.id);
+  if (eventos.some(([t]) => t === 'etapa')) ctx.waitUntil(enviarEtapaMeta(env, id, String(body.etapa)));
+  if (eventos.some(([t]) => t === 'classificacao')) ctx.waitUntil(enviarCategoriaMeta(env, id));
   return obterLead(env, id);
 }
 
@@ -383,7 +402,7 @@ export async function adicionarNota(request: Request, env: Env, user: SessionUse
   return obterLead(env, id);
 }
 
-export async function reclassificar(env: Env, user: SessionUser, id: number): Promise<Response> {
+export async function reclassificar(env: Env, ctx: ExecutionContext, user: SessionUser, id: number): Promise<Response> {
   const lead = await env.DB.prepare('SELECT * FROM leads WHERE id = ?').bind(id).first<LeadRow>();
   if (!lead) throw new HttpError(404, 'Lead não encontrado');
   const regras = classificarPorRegras(lead);
@@ -392,6 +411,8 @@ export async function reclassificar(env: Env, user: SessionUser, id: number): Pr
     .run();
   await registrarEvento(env, id, 'classificacao', `Reclassificado pelas regras como Lead ${regras.categoria} (${regras.score} pts).`, user.id);
   await refinarComIA(env, id);
+  const depois = await env.DB.prepare('SELECT categoria FROM leads WHERE id = ?').bind(id).first<{ categoria: string }>();
+  if (depois && depois.categoria !== lead.categoria) ctx.waitUntil(enviarCategoriaMeta(env, id));
   return obterLead(env, id);
 }
 
