@@ -7,7 +7,7 @@ Roda inteiro na Cloudflare: **Worker** (API + painel) e banco **D1** (`crmsmartm
 ## Funcionalidades
 
 - **Entrada de leads** pelo formulário do site (`POST /api/public/leads`, JSON ou formulário HTML), com proteção anti-robô (campo isca), limite por IP e CORS restrito ao domínio do site. Contatos repetidos (mesmo e-mail ou telefone) atualizam o lead em aberto em vez de duplicar.
-- **Qualificação A/B/C** por pontuação (0–100) com base em volume da obra, perfil do cliente, prazo de compra e região atendida — regras em [`src/criteria.ts`](src/criteria.ts). Opcionalmente, a **IA (Claude)** lê todas as respostas e refina a classificação com uma justificativa.
+- **Qualificação A/B/C** por pontuação (0–100) com base na quantidade de blocos (ou m² de parede), perfil do cliente, prazo de compra e região atendida — regras em [`src/criteria.ts`](src/criteria.ts). Opcionalmente, a **IA (Claude)** lê todas as respostas e refina a classificação com uma justificativa.
 - **Pipeline** com 10 etapas: Novo lead → Em contato → Call agendada → Call realizada → Visita técnica → Follow-up → Proposta enviada → Negociação → Ganho / Perdido (com motivo da perda). Quadro com arrastar-e-soltar.
 - **Busca e filtros** por nome, cidade, e-mail, telefone, categoria, etapa, cidade, origem, responsável e período; **exportação CSV** (abre direto no Excel).
 - **Ficha do lead**: respostas originais, motivo da classificação, responsável, valor estimado, histórico e anotações, atalhos para WhatsApp/ligação/e-mail.

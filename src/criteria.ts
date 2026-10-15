@@ -45,8 +45,8 @@ export const CIDADES_ATENDIDAS = [
 export const LIMIARES = { A: 70, B: 40 };
 
 export const CRITERIOS_TEXTO = `Pontuação de 0 a 100, somando quatro critérios:
-• Volume da obra (até 40 pts): acima de 1.000 m² = 40 · 200–1.000 m² = 30 · 50–200 m² = 15 · até 50 m² = 5.
-  Quantidades em blocos/peças são convertidas para m² (≈12,5 peças por m²).
+• Quantidade de blocos (até 40 pts): acima de 10.000 = 40 · 3.000–10.000 = 30 · 1.000–3.000 = 15 · até 1.000 = 5.
+  Metragem de parede é convertida em blocos (≈12,5 blocos por m²).
 • Perfil do cliente (até 25 pts): construtora/empreiteira, revenda de materiais ou órgão público = 25 · produtor rural = 20 ·
   arquiteto/engenheiro = 15 · pessoa física/obra própria = 10.
 • Prazo de compra (até 25 pts): imediato = 25 · até 30 dias = 20 · até 90 dias = 10 · apenas pesquisando = 0.
@@ -81,32 +81,38 @@ function contem(texto: string, termos: string[]): boolean {
   return termos.some((t) => texto.includes(t));
 }
 
-/** Extrai metragem aproximada em m² a partir de texto livre ou opção de formulário. */
-export function metragem(volume: string): number | null {
+const BLOCOS_POR_M2 = 12.5;
+
+/** Estima a quantidade de blocos a partir da opção do formulário ou de texto livre ("5 mil blocos", "300 m²"). */
+export function quantidadeBlocos(volume: string): number | null {
   const v = semAcento(volume).replace(/\./g, '').replace(',', '.');
   const numeros = [...v.matchAll(/\d+(?:\.\d+)?/g)].map((m) => Number(m[0]));
   if (numeros.length === 0) return null;
-  let maior = Math.max(...numeros);
-  if (/\bmil\b/.test(v) && maior < 1000) maior *= 1000;
-  if (contem(v, ['bloco', 'peca', 'unid', 'pcs', 'pc '])) maior = maior / 12.5;
-  if (contem(v, ['acima', 'mais de', '+'])) maior += 1;
-  return maior;
+  let n = Math.max(...numeros);
+  if (/\bmil\b/.test(v) && n < 1000) n *= 1000;
+  const emMetros = /m²|m2\b|metro/.test(v);
+  const emBlocos = contem(v, ['bloco', 'peca', 'unid', 'pcs']);
+  // Sem unidade: números pequenos costumam ser m² de parede; grandes, quantidade de blocos
+  if (emMetros || (!emBlocos && n < 1000)) n *= BLOCOS_POR_M2;
+  if (contem(v, ['acima', 'mais de', '+'])) n += 1;
+  return Math.round(n);
 }
 
 function pontosVolume(volume: string | null | undefined): [number, string] {
-  if (!volume) return [0, 'volume não informado'];
-  const m = metragem(volume);
-  if (m === null) {
+  if (!volume) return [0, 'quantidade não informada'];
+  const n = quantidadeBlocos(volume);
+  if (n === null) {
     const v = semAcento(volume);
-    if (contem(v, ['grande', 'alto'])) return [30, `volume "${volume}" (grande)`];
-    if (contem(v, ['medi'])) return [15, `volume "${volume}" (médio)`];
-    if (contem(v, ['pequen', 'baixo'])) return [5, `volume "${volume}" (pequeno)`];
-    return [0, `volume "${volume}" não identificado`];
+    if (contem(v, ['grande', 'alto'])) return [30, `quantidade "${volume}" (grande)`];
+    if (contem(v, ['medi'])) return [15, `quantidade "${volume}" (média)`];
+    if (contem(v, ['pequen', 'baixo'])) return [5, `quantidade "${volume}" (pequena)`];
+    return [0, `quantidade "${volume}" não identificada`];
   }
-  if (m > 1000) return [40, `volume alto (~${Math.round(m)} m²)`];
-  if (m > 200) return [30, `volume bom (~${Math.round(m)} m²)`];
-  if (m > 50) return [15, `volume médio (~${Math.round(m)} m²)`];
-  return [5, `volume pequeno (~${Math.round(m)} m²)`];
+  const qtd = `~${(Math.round(n / 10) * 10).toLocaleString("pt-BR")} blocos`;
+  if (n > 10000) return [40, `volume alto (${qtd})`];
+  if (n > 3000) return [30, `volume bom (${qtd})`];
+  if (n > 1000) return [15, `volume médio (${qtd})`];
+  return [5, `volume pequeno (${qtd})`];
 }
 
 function pontosPerfil(perfil: string | null | undefined): [number, string] {
