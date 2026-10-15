@@ -1332,10 +1332,6 @@ async function viewSite(main) {
   <input name="nome" placeholder="Seu nome" required>
   <input name="telefone" placeholder="WhatsApp" required>
   <input name="cidade" placeholder="Cidade (ex.: Paracatu - MG)" required>
-  <!-- campo invisível anti-robô: deixe vazio -->
-  <input name="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px">
-  <!-- opcional: página de obrigado no seu site -->
-  <input type="hidden" name="_redirect" value="https://smartmoldbrasil.com.br/obrigado">
   <button type="submit">Solicitar orçamento</button>
 </form>`;
   const snippetJs = `fetch('${endpoint}', {
