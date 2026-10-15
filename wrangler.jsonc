@@ -1,0 +1,30 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "crmsmartmold",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "crmsmartmold-db",
+      "database_id": "d688337c-f802-472b-b942-64559860ff83",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "vars": {
+    // Origens autorizadas a enviar o formulário público (separadas por vírgula)
+    "ALLOWED_ORIGINS": "https://smartmoldbrasil.com.br,https://www.smartmoldbrasil.com.br",
+    // Modelo usado na classificação por IA (só é chamado se o secret ANTHROPIC_API_KEY existir)
+    "AI_MODEL": "claude-opus-5-5"
+  }
+  // Secrets (configure com `npx wrangler secret put NOME`):
+  //   ANTHROPIC_API_KEY  -> ativa a classificação por IA (opcional; sem ela, valem as regras)
+}
