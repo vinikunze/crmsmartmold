@@ -2,9 +2,9 @@ import Anthropic from '@anthropic-ai/sdk';
 import type { Env } from './types.ts';
 import { CIDADES_ATENDIDAS, CRITERIOS_TEXTO, LIMIARES, categoriaPorScore, type Classificacao } from './criteria.ts';
 
-const SYSTEM = `Você qualifica leads comerciais da Smart Mold, fábrica de pré-moldados de concreto
-(blocos estruturais e de vedação, pisos intertravados/pavers, canaletas, cobogós, colunas, pingadeiras e cochos)
-com sede em João Pinheiro (MG).
+const SYSTEM = `Você qualifica leads comerciais da Smart Mold, fábrica de blocos de concreto
+(blocos de vedação e estruturais, meio-blocos e canaletas) com sede em João Pinheiro (MG).
+A empresa vende somente blocos de concreto.
 
 Região atendida pela fábrica: ${CIDADES_ATENDIDAS.join(', ')}.
 
@@ -12,8 +12,8 @@ Critérios de referência:
 ${CRITERIOS_TEXTO}
 
 Use os critérios como base, mas leia todas as respostas do formulário (inclusive a mensagem livre): sinais como
-obra já iniciada, pedido de visita técnica, compra recorrente, CNPJ ou grandes quantidades podem subir o lead;
-pedido genérico, curiosidade ou região muito distante podem baixá-lo. Responda com:
+obra já iniciada, pedido de visita técnica, compra recorrente (revendas), CNPJ ou grandes quantidades de blocos podem subir o lead;
+pedido genérico, curiosidade, região muito distante ou interesse em produtos que a empresa não vende (pisos, cobogós, telhas etc.) podem baixá-lo. Responda com:
 - score: 0 a 100
 - categoria: "A" (${LIMIARES.A}+), "B" (${LIMIARES.B}–${LIMIARES.A - 1}) ou "C" (abaixo de ${LIMIARES.B}), coerente com o score
 - motivo: uma ou duas frases em português explicando a classificação para o vendedor.`;

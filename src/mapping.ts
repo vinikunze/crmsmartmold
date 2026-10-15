@@ -31,9 +31,9 @@ const ALIASES: Record<CampoLead, string[]> = {
   cidade: ['cidade', 'city', 'municipio', 'cidade_uf', 'localidade', 'cidade_da_obra'],
   uf: ['uf', 'estado', 'state'],
   perfil: ['perfil', 'voce_e', 'tipo_cliente', 'tipo_de_cliente', 'segmento', 'profile', 'quem_e_voce', 'atuacao'],
-  produto: ['produto', 'produtos', 'interesse', 'product', 'produto_de_interesse', 'produtos_de_interesse'],
+  produto: ['produto', 'produtos', 'interesse', 'product', 'produto_de_interesse', 'produtos_de_interesse', 'tipo_de_bloco', 'tipo_do_bloco', 'bloco'],
   tipo_obra: ['tipo_obra', 'tipo_de_obra', 'obra', 'aplicacao', 'finalidade', 'tipo_de_instalacao'],
-  volume: ['volume', 'quantidade', 'metragem', 'consumo', 'tamanho_obra', 'tamanho_da_obra', 'area', 'm2', 'qtd'],
+  volume: ['volume', 'quantidade', 'quantidade_de_blocos', 'quantos_blocos', 'qtd_blocos', 'metragem', 'consumo', 'tamanho_obra', 'tamanho_da_obra', 'area', 'm2', 'qtd'],
   prazo: ['prazo', 'quando', 'urgencia', 'previsao', 'previsao_de_compra', 'quando_pretende_comprar'],
   mensagem: ['mensagem', 'message', 'observacoes', 'observacao', 'comentario', 'your_message', 'duvida', 'detalhes'],
   valor_estimado: ['valor_estimado', 'valor', 'orcamento', 'value', 'price'],
@@ -44,9 +44,9 @@ const ALIASES: Record<CampoLead, string[]> = {
 
 const PALAVRAS_CHAVE: [CampoLead, string[]][] = [
   ['perfil', ['voce_e', 'perfil', 'segmento', 'tipo_de_cliente', 'quem_e']],
-  ['volume', ['tamanho', 'metragem', 'quantidade', 'volume', 'm2', 'm_2']],
+  ['volume', ['quantos_blocos', 'quantidade', 'tamanho', 'metragem', 'volume', 'm2', 'm_2']],
   ['prazo', ['prazo', 'quando', 'previsao', 'pretende_comprar']],
-  ['produto', ['produto', 'interesse']],
+  ['produto', ['tipo_de_bloco', 'tipo_do_bloco', 'qual_bloco', 'modelo', 'produto', 'interesse']],
   ['tipo_obra', ['tipo_de_obra', 'tipo_da_obra', 'finalidade']],
   ['cidade', ['cidade', 'municipio']],
 ];

@@ -754,9 +754,9 @@ function ligarBoard() {
 
 const SUGESTOES = {
   perfil: ['Construtora / empreiteira', 'Revenda de materiais', 'Prefeitura / órgão público', 'Produtor rural', 'Arquiteto / engenheiro', 'Pessoa física (obra própria)'],
-  produto: ['Blocos de concreto', 'Piso intertravado (paver)', 'Canaletas', 'Cobogós', 'Colunas', 'Pingadeiras', 'Cochos', 'Outro'],
-  tipo_obra: ['Residencial', 'Comercial', 'Industrial', 'Rural', 'Pública / infraestrutura'],
-  volume: ['Até 50 m²', '50 a 200 m²', '200 a 1.000 m²', 'Acima de 1.000 m²'],
+  produto: ['Bloco de vedação 9 cm', 'Bloco de vedação 14 cm', 'Bloco estrutural 14 cm', 'Bloco estrutural 19 cm', 'Canaleta', 'Não sei, preciso de orientação'],
+  tipo_obra: ['Residencial', 'Comercial', 'Galpão / industrial', 'Muro', 'Rural', 'Pública / infraestrutura'],
+  volume: ['Até 1.000 blocos', '1.000 a 3.000 blocos', '3.000 a 10.000 blocos', 'Acima de 10.000 blocos'],
   prazo: ['Imediato', 'Em até 30 dias', 'Em até 90 dias', 'Apenas pesquisando'],
 };
 
@@ -775,9 +775,9 @@ function camposLeadHtml(l = {}) {
     ${campo('email', 'E-mail', 'type="email"')}
     <div class="form-grid" style="grid-template-columns:2fr 1fr;gap:8px">${campo('cidade', 'Cidade')}${campo('uf', 'UF', 'maxlength="2"')}</div>
     ${campo('perfil', 'Perfil do cliente')}
-    ${campo('produto', 'Produto de interesse')}
+    ${campo('produto', 'Tipo de bloco')}
     ${campo('tipo_obra', 'Tipo de obra')}
-    ${campo('volume', 'Volume / metragem')}
+    ${campo('volume', 'Quantidade de blocos')}
     ${campo('prazo', 'Prazo de compra')}
     ${campo('origem', 'Origem', `placeholder="site, indicação, telefone…"`)}
     <label class="field full">Mensagem / observações<textarea class="input" name="mensagem">${esc(l.mensagem ?? '')}</textarea></label>
@@ -881,9 +881,9 @@ function renderLead(root, { lead: l, eventos }) {
               ['E-mail', l.email],
               ['Cidade', [l.cidade, l.uf].filter(Boolean).join(' / ')],
               ['Perfil', l.perfil],
-              ['Produto', l.produto],
+              ['Tipo de bloco', l.produto],
               ['Tipo de obra', l.tipo_obra],
-              ['Volume', l.volume],
+              ['Quantidade', l.volume],
               ['Prazo', l.prazo],
               ['Mensagem', l.mensagem],
               ['UTM', [l.utm_source, l.utm_medium, l.utm_campaign].filter(Boolean).join(' / ')],
@@ -1085,9 +1085,9 @@ const ROTULOS_CAMPO = {
   cidade: 'Cidade',
   uf: 'UF',
   perfil: 'Perfil do cliente',
-  produto: 'Produto',
+  produto: 'Tipo de bloco',
   tipo_obra: 'Tipo de obra',
-  volume: 'Volume / metragem',
+  volume: 'Quantidade de blocos',
   prazo: 'Prazo',
   mensagem: 'Mensagem',
   valor_estimado: 'Valor estimado',
@@ -1360,15 +1360,15 @@ async function viewSite(main) {
     <option>Pessoa física (obra própria)</option>
   </select>
   <select name="produto">
-    <option value="">Produto de interesse</option>
-    <option>Blocos de concreto</option><option>Piso intertravado (paver)</option>
-    <option>Canaletas</option><option>Cobogós</option><option>Colunas</option>
-    <option>Pingadeiras</option><option>Cochos</option>
+    <option value="">Tipo de bloco</option>
+    <option>Bloco de vedação 9 cm</option><option>Bloco de vedação 14 cm</option>
+    <option>Bloco estrutural 14 cm</option><option>Bloco estrutural 19 cm</option>
+    <option>Canaleta</option><option>Não sei, preciso de orientação</option>
   </select>
   <select name="volume" required>
-    <option value="">Tamanho da obra</option>
-    <option>Até 50 m²</option><option>50 a 200 m²</option>
-    <option>200 a 1.000 m²</option><option>Acima de 1.000 m²</option>
+    <option value="">Quantos blocos você precisa?</option>
+    <option>Até 1.000 blocos</option><option>1.000 a 3.000 blocos</option>
+    <option>3.000 a 10.000 blocos</option><option>Acima de 10.000 blocos</option>
   </select>
   <select name="prazo" required>
     <option value="">Quando pretende comprar?</option>
@@ -1402,7 +1402,7 @@ async function viewSite(main) {
       </div>
       <div class="card"><h2>Endereço de envio</h2><p class="muted small">O formulário do site deve enviar (POST) para:</p>
         <div class="copy-row"><input class="input" readonly value="${esc(endpoint)}" /><button class="btn" type="button" id="c-end">Copiar</button></div>
-        <p class="small muted">Aceita JSON ou formulário HTML comum. Nomes de campo reconhecidos: nome, telefone/whatsapp, email, cidade, uf, perfil, produto, tipo_obra, volume/metragem/quantidade, prazo, mensagem e UTMs.
+        <p class="small muted">Aceita JSON ou formulário HTML comum. Nomes de campo reconhecidos: nome, telefone/whatsapp, email, cidade, uf, perfil, produto/tipo_de_bloco, tipo_obra, volume/quantidade/metragem, prazo, mensagem e UTMs. A quantidade pode vir em blocos ou em m² de parede.
         Envios via JavaScript só são aceitos a partir de: <span class="mono">${esc('smartmoldbrasil.com.br')}</span>.</p>
         <p class="small muted">Formulários Elementor/WordPress também funcionam via "Webhook" nas ações do formulário — use a área de Integrações ou este endereço diretamente.</p>
       </div>
