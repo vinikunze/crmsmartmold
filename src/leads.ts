@@ -1,7 +1,7 @@
 import type { Env, LeadRow, SessionUser } from './types.ts';
 import { HttpError, json, nowIso, readBody, str } from './http.ts';
 import { ETAPAS, ETAPAS_FECHADAS, ETAPA_IDS, classificarPorRegras, nomeEtapa } from './criteria.ts';
-import { apenasDigitos, CAMPOS_LEAD, type DadosLead } from './mapping.ts';
+import { apenasDigitos, CAMPOS_LEAD, separarCidadeUf, type DadosLead } from './mapping.ts';
 import { classificarComIA } from './ai.ts';
 import { exigirAdmin } from './auth.ts';
 import { enviarEventoMeta } from './meta.ts';
@@ -279,27 +279,16 @@ export async function exportarCsv(env: Env, url: URL): Promise<Response> {
     ['ID', (l) => l.id],
     ['Data', (l) => dataBR(l.created_at)],
     ['Nome', (l) => l.nome],
-    ['E-mail', (l) => l.email],
     ['Telefone', (l) => l.telefone],
     ['Cidade', (l) => l.cidade],
     ['UF', (l) => l.uf],
     ['Origem', (l) => l.origem],
-    ['Perfil', (l) => l.perfil],
-    ['Produto', (l) => l.produto],
-    ['Tipo de obra', (l) => l.tipo_obra],
-    ['Volume', (l) => l.volume],
-    ['Prazo', (l) => l.prazo],
     ['Categoria', (l) => l.categoria],
-    ['Score', (l) => l.score],
     ['Motivo da classificação', (l) => l.classificacao_motivo],
     ['Etapa', (l) => nomeEtapa(l.etapa)],
     ['Responsável', (l) => l.responsavel_nome],
     ['Valor estimado', (l) => (l.valor_estimado ?? '').toString().replace('.', ',')],
     ['Motivo da perda', (l) => l.motivo_perda],
-    ['Mensagem', (l) => l.mensagem],
-    ['UTM source', (l) => l.utm_source],
-    ['UTM medium', (l) => l.utm_medium],
-    ['UTM campaign', (l) => l.utm_campaign],
   ];
   const linhas = [colunas.map(([c]) => c).join(';')];
   for (const l of results) linhas.push(colunas.map(([, f]) => csvCampo(f(l))).join(';'));
@@ -340,6 +329,13 @@ export async function atualizarLead(request: Request, env: Env, ctx: ExecutionCo
   const sets: string[] = [];
   const params: unknown[] = [];
   const eventos: [string, string][] = [];
+
+  if ('cidade' in body) {
+    const cidade = str(body.cidade, 300);
+    const separado = cidade ? separarCidadeUf(cidade) : { cidade: null, uf: undefined };
+    body.cidade = separado.cidade;
+    body.uf = separado.uf ?? null;
+  }
 
   for (const campo of EDITAVEIS) {
     if (!(campo in body)) continue;
@@ -385,6 +381,15 @@ export async function atualizarLead(request: Request, env: Env, ctx: ExecutionCo
   params.push(nowIso());
   await env.DB.prepare(`UPDATE leads SET ${sets.join(', ')} WHERE id = ?`).bind(...params, id).run();
   if (!eventos.length && sets.length > 1) eventos.push(['edicao', 'Dados do lead editados.']);
+  // Cidade alterada: refaz a classificação automática (a não ser que tenha sido definida manualmente)
+  if ('cidade' in body && !('categoria' in body) && lead.classificado_por !== 'manual' && body.cidade !== lead.cidade) {
+    const atual = await env.DB.prepare('SELECT * FROM leads WHERE id = ?').bind(id).first<LeadRow>();
+    const regras = classificarPorRegras(atual!);
+    await env.DB.prepare("UPDATE leads SET categoria = ?, score = ?, classificacao_motivo = ?, classificado_por = 'regras' WHERE id = ?")
+      .bind(regras.categoria, regras.score, regras.motivo, id)
+      .run();
+    if (regras.categoria !== lead.categoria) eventos.push(['classificacao', `Reclassificado pela cidade: Lead ${lead.categoria} → Lead ${regras.categoria}.`]);
+  }
   for (const [tipo, desc] of eventos) await registrarEvento(env, id, tipo, desc, user.id);
   if (eventos.some(([t]) => t === 'etapa')) ctx.waitUntil(enviarEtapaMeta(env, id, String(body.etapa)));
   if (eventos.some(([t]) => t === 'classificacao')) ctx.waitUntil(enviarCategoriaMeta(env, id));
@@ -430,6 +435,7 @@ export async function criarLeadManual(request: Request, env: Env, ctx: Execution
     if (v) dados[campo] = campo === 'email' ? v.toLowerCase() : v;
   }
   if (!dados.nome) throw new HttpError(400, 'Informe o nome do lead.');
+  if (dados.cidade) Object.assign(dados, separarCidadeUf(dados.cidade, dados.uf));
   const origem = str(body.origem, 80) || 'manual';
   const etapa = str(body.etapa, 40) || 'novo';
   const { id } = await criarOuAtualizarLead(env, ctx, { dados, respostas: {}, origem, etapa, userId: user.id });

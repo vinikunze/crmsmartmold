@@ -10,9 +10,8 @@ Região atendida pela fábrica: ${CIDADES_ATENDIDAS.join(', ')}.
 Critérios de referência:
 ${CRITERIOS_TEXTO}
 
-Use os critérios como base, mas leia todas as respostas do formulário (inclusive a mensagem livre): sinais como
-obra já iniciada, pedido de visita técnica, compra recorrente (revendas), CNPJ ou grandes quantidades de blocos podem subir o lead;
-pedido genérico, curiosidade, região muito distante ou interesse em produtos que a empresa não vende (pisos, cobogós, telhas etc.) podem baixá-lo. Responda com:
+O formulário coleta apenas nome, telefone e cidade. Use os critérios como base; ajuste só se houver um sinal claro
+nos dados recebidos (por exemplo, o nome indicar uma construtora ou revenda, o que pode subir o lead). Responda com:
 - score: 0 a 100
 - categoria: "A" (${LIMIARES.A}+), "B" (${LIMIARES.B}–${LIMIARES.A - 1}) ou "C" (abaixo de ${LIMIARES.B}), coerente com o score
 - motivo: uma ou duas frases em português explicando a classificação para o vendedor.`;

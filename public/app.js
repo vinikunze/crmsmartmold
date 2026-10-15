@@ -58,6 +58,7 @@ async function api(path, { method = 'GET', body } = {}) {
 }
 
 function toast(msg) {
+  $$('.toast').forEach((x) => x.remove());
   const t = document.createElement('div');
   t.className = 'toast';
   t.setAttribute('role', 'status');
@@ -491,7 +492,7 @@ function barraFiltros({ semEtapa = false } = {}) {
   const f = state.filtros;
   return `
     <div class="filters" id="filtros">
-      <input class="input search" type="search" name="q" placeholder="Buscar por nome, cidade, e-mail ou telefone" value="${esc(f.q)}" aria-label="Buscar" />
+      <input class="input search" type="search" name="q" placeholder="Buscar por nome, cidade ou telefone" value="${esc(f.q)}" aria-label="Buscar" />
       <div class="chips" role="group" aria-label="Categoria">${['A', 'B', 'C']
         .map((c) => `<button type="button" data-cat="${c}" aria-pressed="${f.categoria.includes(c)}"><span class="dot ${c}" style="width:8px;height:8px;border-radius:50%;display:inline-block"></span>${c}</button>`)
         .join('')}</div>
@@ -552,7 +553,7 @@ function tabelaLeads(leads, { compacta = false } = {}) {
     <tbody>${leads
       .map(
         (l) => `<tr data-lead="${l.id}">
-        <td><strong>${esc(l.nome)}</strong><div class="sub">${esc([l.telefone, l.email].filter(Boolean).join(' · '))}</div></td>
+        <td><strong>${esc(l.nome)}</strong><div class="sub">${esc(l.telefone || '')}</div></td>
         <td>${esc(l.cidade || '—')}${l.uf ? `<span class="muted">/${esc(l.uf)}</span>` : ''}</td>
         <td>${badgeCat(l.categoria, l.score)}</td>
         <td><select class="input" data-etapa-lead="${l.id}" aria-label="Etapa de ${esc(l.nome)}">${opcoesEtapa(l.etapa)}</select></td>
@@ -694,7 +695,7 @@ async function viewPipeline(main) {
               (l) => `<article class="lead-card" draggable="true" data-card="${l.id}" tabindex="0">
               <div class="top"><span class="name">${esc(l.nome)}</span>${badgeCat(l.categoria)}</div>
               <div class="meta">${esc(l.cidade || '—')}</div>
-              <div class="meta">${esc(l.volume || '')}${l.valor_estimado ? ` · ${fmtMoeda(l.valor_estimado)}` : ''}</div>
+              ${l.valor_estimado ? `<div class="meta">${fmtMoeda(l.valor_estimado)}</div>` : ''}
               <div class="meta">${esc(l.responsavel_nome ? `👤 ${l.responsavel_nome}` : 'Sem responsável')} · ${fmtData(l.created_at)}</div>
             </article>`,
             )
@@ -752,12 +753,7 @@ function ligarBoard() {
 
 // ---------- Novo lead ----------
 
-const SUGESTOES = {
-  perfil: ['Construtora / empreiteira', 'Revenda de materiais', 'Prefeitura / órgão público', 'Produtor rural', 'Arquiteto / engenheiro', 'Pessoa física (obra própria)'],
-  tipo_obra: ['Residencial', 'Comercial', 'Galpão / industrial', 'Muro', 'Rural', 'Pública / infraestrutura'],
-  volume: ['Até 1.000 blocos', '1.000 a 3.000 blocos', '3.000 a 10.000 blocos', 'Acima de 10.000 blocos'],
-  prazo: ['Imediato', 'Em até 30 dias', 'Em até 90 dias', 'Apenas pesquisando'],
-};
+const SUGESTOES = {};
 
 function datalists() {
   return Object.entries(SUGESTOES)
@@ -770,22 +766,16 @@ function camposLeadHtml(l = {}) {
     `<label class="field">${rot}<input class="input" name="${nome}" value="${esc(l[nome] ?? '')}" ${SUGESTOES[nome] ? `list="dl-${nome}"` : ''} ${attrs}/></label>`;
   return `<div class="form-grid">
     ${campo('nome', 'Nome *', 'required')}
-    ${campo('telefone', 'Telefone / WhatsApp', 'type="tel"')}
-    ${campo('email', 'E-mail', 'type="email"')}
-    <div class="form-grid" style="grid-template-columns:2fr 1fr;gap:8px">${campo('cidade', 'Cidade')}${campo('uf', 'UF', 'maxlength="2"')}</div>
-    ${campo('perfil', 'Perfil do cliente')}
-    ${campo('tipo_obra', 'Tipo de obra')}
-    ${campo('volume', 'Quantidade de blocos')}
-    ${campo('prazo', 'Prazo de compra')}
-    ${campo('origem', 'Origem', `placeholder="site, indicação, telefone…"`)}
-    <label class="field full">Mensagem / observações<textarea class="input" name="mensagem">${esc(l.mensagem ?? '')}</textarea></label>
-  </div>${datalists()}`;
+    ${campo('telefone', 'Telefone / WhatsApp *', 'type="tel" required')}
+    <label class="field full">Cidade *<input class="input" name="cidade" value="${esc([l.cidade, l.uf].filter(Boolean).join(' - '))}" placeholder="Ex.: Paracatu - MG" required /></label>
+  </div>`;
 }
 
 function modalNovoLead() {
   const m = abrirModal(`<form id="f-novo" style="display:flex;flex-direction:column;gap:14px"><h2>Novo lead</h2>
-    <p class="muted small" style="margin:0">O lead será classificado automaticamente (A, B ou C) a partir das informações.</p>
-    ${camposLeadHtml({ origem: 'manual' })}
+    <p class="muted small" style="margin:0">O lead será classificado automaticamente (A, B ou C) pela cidade.</p>
+    ${camposLeadHtml()}
+    <input type="hidden" name="origem" value="manual" />
     <div class="alert error hidden" id="novo-erro"></div>
     <div class="actions"><button class="btn primary" type="submit">Salvar lead</button><button class="btn ghost" type="button" data-fechar>Cancelar</button></div></form>`);
   $('#f-novo', m).addEventListener('submit', async (e) => {
@@ -876,14 +866,7 @@ function renderLead(root, { lead: l, eventos }) {
           <dl class="kv">
             ${[
               ['Telefone', l.telefone],
-              ['E-mail', l.email],
-              ['Cidade', [l.cidade, l.uf].filter(Boolean).join(' / ')],
-              ['Perfil', l.perfil],
-              ['Tipo de obra', l.tipo_obra],
-              ['Quantidade', l.volume],
-              ['Prazo', l.prazo],
-              ['Mensagem', l.mensagem],
-              ['UTM', [l.utm_source, l.utm_medium, l.utm_campaign].filter(Boolean).join(' / ')],
+              ['Cidade', [l.cidade, l.uf].filter(Boolean).join(' - ')],
             ]
               .map(([k, v]) => `<dt>${k}</dt><dd>${esc(v || '—')}</dd>`)
               .join('')}
@@ -966,7 +949,7 @@ function renderLead(root, { lead: l, eventos }) {
     $('#cancelar-edit', root).addEventListener('click', () => renderLead(root, { lead: l, eventos }));
     $('#f-edit', root).addEventListener('submit', (e) => {
       e.preventDefault();
-      atualizar(Object.fromEntries(new FormData(e.target)), 'Dados salvos. Use "Reclassificar" se mudou a qualificação.');
+      atualizar(Object.fromEntries(new FormData(e.target)), 'Dados salvos.');
     });
   });
   $('#d-excluir', root)?.addEventListener('click', async () => {
@@ -1074,6 +1057,9 @@ async function viewUsuarios(main) {
 }
 
 // ---------- Integrações (webhooks) ----------
+
+// Campos usados pelo CRM (o formulário pede só nome, telefone e cidade)
+const CAMPOS_VISIVEIS = ['nome', 'telefone', 'cidade'];
 
 const ROTULOS_CAMPO = {
   nome: 'Nome',
@@ -1237,10 +1223,10 @@ async function viewIntegracao(main, id) {
             : `<p class="muted">Nenhum evento recebido ainda. Envie um evento de teste pela plataforma (ou use o botão acima) para liberar o mapeamento.</p>`
         }</div>
 
-      <form class="card" id="f-map"><h2>3. Mapeamento de campos</h2><p class="muted small">Escolha qual informação do evento corresponde a cada campo do CRM. É necessário mapear pelo menos nome, e-mail ou telefone.</p>
+      <form class="card" id="f-map"><h2>3. Mapeamento de campos</h2><p class="muted small">Escolha qual informação do evento corresponde a cada campo do CRM. É necessário mapear pelo menos o nome ou o telefone.</p>
         ${
           d.caminhos.length
-            ? `<div class="table-wrap"><table class="map-table"><thead><tr><th>Campo do CRM</th><th>Informação recebida</th></tr></thead><tbody>${d.campos
+            ? `<div class="table-wrap"><table class="map-table"><thead><tr><th>Campo do CRM</th><th>Informação recebida</th></tr></thead><tbody>${CAMPOS_VISIVEIS
                 .map((c) => `<tr style="cursor:default"><td>${esc(ROTULOS_CAMPO[c] || c)}</td><td><select class="input" name="map_${c}">${opcoesCaminho(i.mapeamento[c])}</select></td></tr>`)
                 .join('')}</tbody></table></div>`
             : '<div class="alert warn">Aguardando o primeiro evento para listar as informações recebidas.</div>'
@@ -1318,7 +1304,7 @@ async function viewIntegracao(main, id) {
       e.preventDefault();
       const f = new FormData(e.target);
       const mapeamento = {};
-      for (const c of d.campos) if (f.get(`map_${c}`)) mapeamento[c] = f.get(`map_${c}`);
+      for (const c of CAMPOS_VISIVEIS) if (f.get(`map_${c}`)) mapeamento[c] = f.get(`map_${c}`);
       const lista = $$('.rule-row', regras)
         .map((row) => Object.fromEntries($$('[data-r]', row).map((el) => [el.dataset.r, el.value])))
         .filter((r) => r.campo);
@@ -1345,28 +1331,7 @@ async function viewSite(main) {
   const snippet = `<form id="form-orcamento" action="${endpoint}" method="POST">
   <input name="nome" placeholder="Seu nome" required>
   <input name="telefone" placeholder="WhatsApp" required>
-  <input name="email" type="email" placeholder="E-mail">
-  <input name="cidade" placeholder="Cidade" required>
-  <select name="perfil" required>
-    <option value="">Você é…</option>
-    <option>Construtora / empreiteira</option>
-    <option>Revenda de materiais</option>
-    <option>Prefeitura / órgão público</option>
-    <option>Produtor rural</option>
-    <option>Arquiteto / engenheiro</option>
-    <option>Pessoa física (obra própria)</option>
-  </select>
-  <select name="volume" required>
-    <option value="">Quantos blocos você precisa?</option>
-    <option>Até 1.000 blocos</option><option>1.000 a 3.000 blocos</option>
-    <option>3.000 a 10.000 blocos</option><option>Acima de 10.000 blocos</option>
-  </select>
-  <select name="prazo" required>
-    <option value="">Quando pretende comprar?</option>
-    <option>Imediato</option><option>Em até 30 dias</option>
-    <option>Em até 90 dias</option><option>Apenas pesquisando</option>
-  </select>
-  <textarea name="mensagem" placeholder="Conte sobre sua obra"></textarea>
+  <input name="cidade" placeholder="Cidade (ex.: Paracatu - MG)" required>
   <!-- campo invisível anti-robô: deixe vazio -->
   <input name="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px">
   <!-- opcional: página de obrigado no seu site -->
@@ -1376,8 +1341,7 @@ async function viewSite(main) {
   const snippetJs = `fetch('${endpoint}', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ nome, telefone, email, cidade, perfil, volume, prazo, mensagem,
-                         utm_source, utm_medium, utm_campaign })
+  body: JSON.stringify({ nome, telefone, cidade })
 });`;
   main.innerHTML = `<div class="page-head"><div><h1>Formulário do site</h1><p>Como os leads da landing page chegam ao CRM e como são classificados.</p></div>
     <div class="actions"><a class="btn" href="/formulario-exemplo.html" target="_blank" rel="noopener">Abrir formulário de teste</a></div></div>
@@ -1393,7 +1357,7 @@ async function viewSite(main) {
       </div>
       <div class="card"><h2>Endereço de envio</h2><p class="muted small">O formulário do site deve enviar (POST) para:</p>
         <div class="copy-row"><input class="input" readonly value="${esc(endpoint)}" /><button class="btn" type="button" id="c-end">Copiar</button></div>
-        <p class="small muted">Aceita JSON ou formulário HTML comum. Nomes de campo reconhecidos: nome, telefone/whatsapp, email, cidade, uf, perfil, tipo_obra, volume/quantidade/metragem, prazo, mensagem e UTMs. A quantidade pode vir em blocos ou em m² de parede.
+        <p class="small muted">Aceita JSON ou formulário HTML comum. Campos: <span class="mono">nome</span>, <span class="mono">telefone</span> (ou whatsapp) e <span class="mono">cidade</span>. A cidade pode vir com o estado, ex.: "Paracatu - MG".
         Envios via JavaScript só são aceitos a partir de: <span class="mono">${esc('smartmoldbrasil.com.br')}</span>.</p>
         <p class="small muted">Formulários Elementor/WordPress também funcionam via "Webhook" nas ações do formulário — use a área de Integrações ou este endereço diretamente.</p>
       </div>
