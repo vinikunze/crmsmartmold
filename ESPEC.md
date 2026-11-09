@@ -97,6 +97,7 @@ usuários registrando água e refeições ficam milhares de vezes abaixo.
 
 - **Vini, na Cloudflare**: importar o repositório no Workers Builds e ligar o
   Access (passos no README). O banco já está pronto.
-- Decidir se o app ganha um repositório próprio (`vinikunze/em-dia`), como os
-  outros. Hoje ele mora na pasta `em-dia/` do `crmsmartmold` só porque esta
-  sessão não podia criar repositório.
+- O repositório ainda se chama `crmsmartmold` no GitHub. Em 09/11/2026 o Vini
+  decidiu apagar todo o CRM dele e recomeçar do zero com este app; o código
+  antigo continua só no histórico do git. Dá para renomear o repositório para
+  `em-dia` em Settings → General no GitHub.
