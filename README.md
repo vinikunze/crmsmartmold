@@ -46,7 +46,8 @@ no computador.
 
 Banco D1 `em-dia` (`5c6d87af-a9f0-48cc-ade5-435062042c9f`, região ENAM) **já
 criado**, com a migração `0001` aplicada e registrada em `d1_migrations`.
-Endereço previsto: **https://em-dia.vinihkunze.workers.dev**.
+Endereço: **https://emdia.vinihkunze.workers.dev** (Worker `emdia`, com o
+mesmo nome do repositório `vinikunze/emdia`).
 
 Passos no painel da Cloudflare (iguais aos do `nossoap`):
 
@@ -54,7 +55,7 @@ Passos no painel da Cloudflare (iguais aos do `nossoap`):
    Raiz: `/`. Build: `npm run build`. Deploy: `npx wrangler deploy`. Cada
    push na branch de produção publica.
 2. **Access**: na aba Access do Worker (ou Zero Trust → Access →
-   Applications → Self-hosted), domínio `em-dia.vinihkunze.workers.dev`,
+   Applications → Self-hosted), domínio `emdia.vinihkunze.workers.dev`,
    política "Allow" com os dois e-mails, login por código no e-mail
    (One-time PIN).
 3. Abrir no celular e **Adicionar à tela de início**.
