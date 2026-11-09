@@ -97,7 +97,8 @@ usuários registrando água e refeições ficam milhares de vezes abaixo.
 
 - **Vini, na Cloudflare**: importar o repositório no Workers Builds e ligar o
   Access (passos no README). O banco já está pronto.
-- O repositório ainda se chama `crmsmartmold` no GitHub. Em 09/11/2026 o Vini
-  decidiu apagar todo o CRM dele e recomeçar do zero com este app; o código
-  antigo continua só no histórico do git. Dá para renomear o repositório para
-  `em-dia` em Settings → General no GitHub.
+- Em 09/11/2026 o Vini apagou o CRM da Smart Mold que morava neste
+  repositório (continua só no histórico do git) e o renomeou de
+  `crmsmartmold` para `emdia`. O Worker na Cloudflare também se chama
+  `emdia`: o nome no `wrangler.jsonc` precisa ser igual, senão a publicação
+  automática falha (aconteceu na primeira tentativa, com `em-dia`).

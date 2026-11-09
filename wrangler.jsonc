@@ -1,7 +1,9 @@
 {
   // em dia.: água e refeições do casal. Site, API e banco num Worker só.
+  // O nome tem que ser igual ao do Worker no painel ("emdia", como o repositório):
+  // se for diferente, a publicação automática da Cloudflare falha.
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "em-dia",
+  "name": "emdia",
   "main": "./worker/index.ts",
   "compatibility_date": "2026-11-01",
   // Só o endereço principal. Endereços de pré-visualização seriam mais portas
