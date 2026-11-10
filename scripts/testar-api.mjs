@@ -115,6 +115,15 @@ conferir('recusa "outro" no plano', outro.status === 400, outro);
 const { dados: depois } = await pedir('GET', 'dados');
 conferir('plano do Vini não mudou', depois.horarios.filter((h) => h.pessoa_id === vini.id).length === 4, depois.horarios);
 
+// Lembretes no calendário (plano do Vini: 4 refeições)
+const ics = await fetch(`${BASE}/api/pessoas/${vini.id}/lembretes.ics?refeicoes=1&agua=120`);
+const textoIcs = await ics.text();
+conferir('lembretes: arquivo de calendário', ics.status === 200 && ics.headers.get('content-type').startsWith('text/calendar') && textoIcs.startsWith('BEGIN:VCALENDAR'), ics.status);
+conferir('lembretes: 4 refeições + 7 de água, todo dia, com aviso', (textoIcs.match(/BEGIN:VEVENT/g) ?? []).length === 11 && (textoIcs.match(/BEGIN:VALARM/g) ?? []).length === 11 && textoIcs.includes('RRULE:FREQ=DAILY'), textoIcs.slice(0, 300));
+const icsVazio = await pedir('GET', `pessoas/${vini.id}/lembretes.ics?refeicoes=0&agua=0`);
+const icsRuim = await pedir('GET', `pessoas/${vini.id}/lembretes.ics?agua=7`);
+conferir('lembretes: recusa sem nenhum lembrete e intervalo inventado (400)', icsVazio.status === 400 && icsRuim.status === 400, [icsVazio, icsRuim]);
+
 // Segurança
 const csrf = await pedir('POST', 'agua', { chave: chave(), pessoa_id: vini.id, dia: hoje, hora: '10:00', ml: 250 }, { origin: 'https://site-malicioso.com' });
 conferir('recusa outra origem (CSRF)', csrf.status === 403, csrf);

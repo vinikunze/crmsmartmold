@@ -2,14 +2,16 @@
   // O dia de uma pessoa: saudação com a frase do momento, os dois lado a lado,
   // a garrafa que enche (com botões de um toque) e a linha do dia com as
   // refeições do plano e as de fora dele, cada uma com a sua cor.
-  import { ChevronLeft, ChevronRight, GlassWater, CupSoda, Plus, Clock, Flame, Utensils } from '@lucide/svelte';
+  import { ChevronLeft, ChevronRight, GlassWater, CupSoda, Plus, Clock, Flame, Utensils, Check, RotateCw, Pencil } from '@lucide/svelte';
   import { untrack } from 'svelte';
   import { estado } from '../lib/estado.svelte';
   import EscolhaPessoa from '../lib/EscolhaPessoa.svelte';
   import Garrafa from '../lib/Garrafa.svelte';
   import Icone from '../lib/Icone.svelte';
   import { nomeDoDia, somarDias, dataLonga, diasEntre } from '../../shared/datas';
-  import { nomeDaRefeicao } from '../../shared/tipos';
+  import { nomeDaRefeicao, SEM_DETALHES } from '../../shared/tipos';
+  import { oDeSempre } from '../../shared/sugestoes';
+  import { horaAgora } from '../../shared/datas';
   import { aguaDoDia, porcentagem, formatarMl, ritmoAgua, linhaDoTempo, kcalDoDia, sequenciaCasal, type ItemLinha } from '../../shared/resumo';
   import { saudacao, fraseDoMomento } from '../../shared/momento';
 
@@ -87,6 +89,18 @@
     if (!p) return;
     // Num dia passado, sugere o horário do plano; hoje, a hora de agora.
     estado.gaveta = { tipo: 'nova', dia, pessoa_id: p.id, refeicao: l.tipo, hora: ehHoje ? undefined : l.previsto ?? undefined };
+  }
+
+  // Um toque: "o de sempre" ou "só marcar", sem abrir o formulário.
+  // A hora é a de agora quando é a próxima refeição de hoje; se já passou do
+  // horário (ou é outro dia), é a do plano, que é quando a pessoa deve ter comido.
+  let ocupado = $state(false);
+  async function rapido(l: ItemLinha, descricao: string) {
+    if (!p || ocupado) return;
+    ocupado = true;
+    const hora = l.estado === 'proxima' || !l.previsto ? horaAgora() : l.previsto;
+    await estado.registrarRapido(p.id, dia, hora, l.tipo, descricao);
+    ocupado = false;
   }
 
   const ROTULO: Record<ItemLinha['estado'], string> = {
@@ -241,14 +255,31 @@
               {#if l.refeicoes.length}
                 {#each l.refeicoes as r (r.id)}
                   <button class="comida" onclick={() => (estado.gaveta = { tipo: 'editar', refeicao: r })}>
-                    <span>{r.descricao}</span>
+                    <span class:sem-detalhes={r.descricao === SEM_DETALHES}>{r.descricao === SEM_DETALHES ? 'Sem detalhes. Toque para contar o que comeu.' : r.descricao}</span>
                     {#if l.refeicoes.length > 1 || r.kcal}
                       <small class="num">{#if l.refeicoes.length > 1}{r.hora}{/if}{#if l.refeicoes.length > 1 && r.kcal} · {/if}{#if r.kcal}{r.kcal} kcal{/if}</small>
                     {/if}
                   </button>
                 {/each}
               {:else}
-                <button class="link" onclick={() => registrar(l)}>Registrar {nomeDaRefeicao(l.tipo).toLowerCase()}</button>
+                {#if l.estado === 'mais_tarde'}
+                  <button class="link" onclick={() => registrar(l)}>Registrar {nomeDaRefeicao(l.tipo).toLowerCase()}</button>
+                {:else}
+                  {@const sempre = oDeSempre(estado.refeicoes, p.id, l.tipo)}
+                  <div class="rapidos">
+                    {#if sempre}
+                      <button class="rapido principal" disabled={ocupado} onclick={() => rapido(l, sempre)} aria-label="Registrar o de sempre: {sempre}">
+                        <RotateCw size={15} /> <span>{sempre}</span>
+                      </button>
+                    {/if}
+                    <button class="rapido" disabled={ocupado} onclick={() => rapido(l, SEM_DETALHES)} aria-label="Só marcar {nomeDaRefeicao(l.tipo).toLowerCase()} como feito">
+                      <Check size={15} /> Só marcar
+                    </button>
+                    <button class="rapido" onclick={() => registrar(l)} aria-label="Escrever o que comeu no {nomeDaRefeicao(l.tipo).toLowerCase()}">
+                      <Pencil size={15} /> Escrever
+                    </button>
+                  </div>
+                {/if}
               {/if}
             </div>
           </li>
@@ -424,7 +455,8 @@
   .atrasada .icone-refeicao.pendente { background: var(--alerta-suave); color: var(--alerta); box-shadow: none; }
   .proxima .icone-refeicao.pendente { background: var(--agua-suave); color: var(--agua); box-shadow: inset 0 0 0 1.5px var(--agua); }
 
-  .corpo { min-width: 0; display: grid; gap: 2px; padding-top: 2px; }
+  /* minmax(0, 1fr): sem isso um texto comprido sem quebra alarga a coluna e vaza do cartão. */
+  .corpo { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; padding-top: 2px; }
   .topo-item { display: flex; flex-wrap: wrap; align-items: center; gap: var(--esp-2); min-height: 24px; }
   .previsto { display: inline-flex; align-items: center; gap: 3px; font-size: var(--fs-100); color: var(--texto-3); }
   .comida {
@@ -445,6 +477,30 @@
   .comida span { overflow-wrap: anywhere; }
   .comida small { font-size: var(--fs-100); color: var(--texto-3); }
   .corpo .link { justify-self: start; padding: 2px 0; }
+  .sem-detalhes { color: var(--texto-3); font-style: italic; }
+  .rapidos { display: flex; flex-wrap: wrap; gap: 6px; margin-top: var(--esp-1); }
+  .rapido {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-height: 40px;
+    min-width: 0;
+    max-width: 100%;
+    padding: 0 10px;
+    border-radius: 999px;
+    border: 1px solid var(--borda);
+    background: var(--superficie);
+    color: var(--texto-2);
+    font-size: var(--fs-200);
+    font-weight: var(--fw-medium);
+    transition: background var(--mov), transform var(--mov);
+  }
+  .rapido:active { transform: scale(0.97); }
+  .rapido:hover:not(:disabled) { background: var(--superficie-2); }
+  .rapido:disabled { opacity: 0.6; }
+  .rapido :global(svg) { flex: none; }
+  .rapido.principal { flex: 1 1 100%; justify-content: flex-start; font-size: var(--fs-300); background: var(--marca-suave); border-color: transparent; color: var(--marca); font-weight: var(--fw-semi); }
+  .rapido.principal span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .nao_registrada strong, .mais_tarde strong { color: var(--texto-2); font-weight: var(--fw-medium); }
 
   @media (max-width: 380px) {

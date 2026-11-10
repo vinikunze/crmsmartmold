@@ -1,7 +1,9 @@
 <script lang="ts">
   // Metas e plano de horários de uma pessoa. Recriado ao trocar de pessoa.
   import { untrack } from 'svelte';
-  import { Minus, Plus, Sparkles } from '@lucide/svelte';
+  import { Minus, Plus, Sparkles, CalendarPlus } from '@lucide/svelte';
+  import { linkLembretes } from '../lib/api';
+  import { horariosDeAgua, AGUA_DE, AGUA_ATE } from '../../shared/lembretes';
   import type { Pessoa, TipoRefeicao, Recipiente, Cor } from '../../shared/tipos';
   import { REFEICOES, RECIPIENTES, CORES } from '../../shared/tipos';
   import Garrafa from '../lib/Garrafa.svelte';
@@ -32,6 +34,19 @@
       return { tipo: r.tipo as TipoRefeicao, nome: r.nome, ativo: !!h, hora: h?.hora ?? r.hora };
     }),
   );
+
+  // Lembretes no calendário do celular: usam o plano SALVO da pessoa.
+  let lembrarRefeicoes = $state(true);
+  let lembrarAgua = $state<number>(120);
+  const planoSalvo = $derived(estado.planoDe(p.id));
+  const qtdRefeicoes = $derived(lembrarRefeicoes ? planoSalvo.length : 0);
+  const qtdAgua = $derived(horariosDeAgua(lembrarAgua).length);
+  const AGUA_OPCOES = [
+    { valor: 0, nome: 'Não' },
+    { valor: 60, nome: '1 em 1 h' },
+    { valor: 120, nome: '2 em 2 h' },
+    { valor: 180, nome: '3 em 3 h' },
+  ];
 
   let salvando = $state(false);
   let erro = $state('');
@@ -174,6 +189,38 @@
   <button class="botao bloco salvar" type="submit" disabled={salvando}>{salvando ? 'Salvando…' : `Salvar ajustes de ${nome.trim() || p.nome}`}</button>
 </form>
 
+<h2 class="secao">Lembretes no celular</h2>
+<section class="cartao bloco">
+  <p class="obs">
+    O app não manda notificação sozinho. Em vez disso, ele põe lembretes que se repetem todo dia no
+    <strong>calendário do celular</strong>, e é o calendário que avisa na hora.
+  </p>
+  <label class="marcar">
+    <input type="checkbox" bind:checked={lembrarRefeicoes} />
+    <span>Refeições do plano <small class="num">({planoSalvo.length === 0 ? 'plano vazio' : planoSalvo.map((h) => h.hora).join(', ')})</small></span>
+  </label>
+  <fieldset>
+    <legend>Água, das {Number(AGUA_DE.slice(0, 2))}h às {Number(AGUA_ATE.slice(0, 2))}h</legend>
+    <div class="intervalos">
+      {#each AGUA_OPCOES as o (o.valor)}
+        <button type="button" class="chip" aria-pressed={lembrarAgua === o.valor} onclick={() => (lembrarAgua = o.valor)}>{o.nome}</button>
+      {/each}
+    </div>
+  </fieldset>
+  {#if qtdRefeicoes + qtdAgua > 0}
+    <a class="botao bloco" href={linkLembretes(p.id, lembrarRefeicoes, lembrarAgua)} target="_blank" rel="noopener">
+      <CalendarPlus size={18} /> Adicionar {qtdRefeicoes + qtdAgua} {qtdRefeicoes + qtdAgua === 1 ? 'lembrete' : 'lembretes'} ao calendário
+    </a>
+  {:else}
+    <p class="obs">Escolha pelo menos um lembrete.</p>
+  {/if}
+  <p class="obs">
+    Vale para os horários <strong>salvos</strong> de {p.nome}, neste celular. Mudou um horário? Salve e adicione de novo: o
+    lembrete é atualizado. Para tirar um lembrete, apague o evento no calendário e escolha "todos os eventos futuros".
+  </p>
+</section>
+
+
 <style>
   form { display: grid; }
   .bloco { display: grid; gap: var(--esp-4); }
@@ -219,6 +266,9 @@
   .cores { display: flex; flex-wrap: wrap; gap: var(--esp-3); }
   .cor { width: 44px; height: 44px; border-radius: 50%; border: 3px solid var(--superficie); background: var(--p); box-shadow: 0 0 0 1px var(--borda); transition: box-shadow var(--mov); }
   .cor[aria-pressed='true'] { box-shadow: 0 0 0 3px var(--texto); }
+
+  .intervalos { display: flex; flex-wrap: wrap; gap: var(--esp-2); }
+  .marcar small { color: var(--texto-3); }
 
   .salvar { margin-top: var(--esp-5); }
 </style>

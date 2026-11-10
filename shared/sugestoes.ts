@@ -2,6 +2,7 @@
 // costuma comer nela (para repetir com um toque).
 
 import type { Horario, Refeicao, TipoRefeicao } from './tipos';
+import { SEM_DETALHES } from './tipos';
 import { minutos } from './datas';
 import { normalizar } from './texto';
 
@@ -35,7 +36,7 @@ export function tipoPelaHora(hora: string, plano: Pick<Horario, 'tipo' | 'hora'>
 export function maisComidos(refeicoes: Refeicao[], pessoaId: number, tipo: TipoRefeicao, max = 6): string[] {
   const contagem = new Map<string, { texto: string; n: number; ultimo: string }>();
   for (const r of refeicoes) {
-    if (r.pessoa_id !== pessoaId || r.tipo !== tipo) continue;
+    if (r.pessoa_id !== pessoaId || r.tipo !== tipo || r.descricao === SEM_DETALHES) continue;
     const k = normalizar(r.descricao);
     const quando = `${r.dia} ${r.hora}`;
     const c = contagem.get(k);
@@ -53,3 +54,7 @@ export function maisComidos(refeicoes: Refeicao[], pessoaId: number, tipo: TipoR
     .slice(0, max)
     .map((c) => c.texto);
 }
+
+/** "O de sempre" daquela refeição, para registrar com um toque. null = nunca registrou com detalhes. */
+export const oDeSempre = (refeicoes: Refeicao[], pessoaId: number, tipo: TipoRefeicao): string | null =>
+  maisComidos(refeicoes, pessoaId, tipo, 1)[0] ?? null;

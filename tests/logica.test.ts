@@ -3,9 +3,11 @@ import { hoje, horaAgora, diaValido, horaValida, somarDias, diasEntre, nomeDoDia
 import {
   formatarMl as formatarMlReal, sequenciaCasal, aguaDoDia, porcentagem, ritmoAgua, sugerirMeta, linhaDoTempo, kcalDoDia, historico, sequenciaAgua,
 } from '../shared/resumo';
-import { tipoPelaHora, maisComidos } from '../shared/sugestoes';
+import { tipoPelaHora, maisComidos, oDeSempre } from '../shared/sugestoes';
+import { SEM_DETALHES } from '../shared/tipos';
 import { normalizar } from '../shared/texto';
 import { saudacao, fraseDoMomento } from '../shared/momento';
+import { horariosDeAgua, lembretesDe, calendarioDeLembretes, escaparIcs, dobrarLinha } from '../shared/lembretes';
 import { semanasDoMes, somarMeses, mesDe, nomeDoMes, nivelGota, recordeAgua } from '../shared/calendario';
 import type { Agua, Horario, Pessoa, Refeicao } from '../shared/tipos';
 
@@ -274,5 +276,67 @@ describe('sequência do casal', () => {
     ];
     expect(sequenciaCasal([vini, sophia], regs, '2026-11-09')).toEqual({ dias: 1, faltam_hoje: [2] });
     expect(sequenciaCasal([vini, sophia], [], '2026-11-09')).toEqual({ dias: 0, faltam_hoje: [1, 2] });
+  });
+});
+
+describe('lembretes no calendário', () => {
+  const planoVini = plano.filter((h) => h.pessoa_id === 1);
+  const agora = new Date('2026-11-10T15:00:00Z'); // 12:00 em Brasília
+
+  it('horários de água: das 8h às 20h', () => {
+    expect(horariosDeAgua(120)).toEqual(['08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00']);
+    expect(horariosDeAgua(180)).toEqual(['08:00', '11:00', '14:00', '17:00', '20:00']);
+    expect(horariosDeAgua(60)).toHaveLength(13);
+    expect(horariosDeAgua(0)).toEqual([]);
+  });
+
+  it('um lembrete por refeição do plano e por horário de água, com identificador fixo', () => {
+    const l = lembretesDe(vini, planoVini, { refeicoes: true, agua: 180 });
+    expect(l.map((x) => x.uid)).toEqual([
+      'refeicao-1-cafe@emdia', 'refeicao-1-almoco@emdia', 'refeicao-1-lanche_tarde@emdia', 'refeicao-1-jantar@emdia',
+      'agua-1-0800@emdia', 'agua-1-1100@emdia', 'agua-1-1400@emdia', 'agua-1-1700@emdia', 'agua-1-2000@emdia',
+    ]);
+    expect(lembretesDe(vini, planoVini, { refeicoes: false, agua: 0 })).toEqual([]);
+  });
+
+  it('arquivo .ics: todo dia, em UTC (Brasília + 3h), com aviso na hora', () => {
+    const ics = calendarioDeLembretes(vini, planoVini, { refeicoes: true, agua: 0, link: 'https://emdia.exemplo' }, agora);
+    const linhas = ics.split('\r\n');
+    expect(linhas[0]).toBe('BEGIN:VCALENDAR');
+    expect(linhas.at(-2)).toBe('END:VCALENDAR');
+    expect(ics.match(/BEGIN:VEVENT/g)).toHaveLength(4);
+    expect(ics.match(/BEGIN:VALARM/g)).toHaveLength(4);
+    expect(ics).toContain('DTSTART:20261110T103000Z'); // café 07:30
+    expect(ics).toContain('DTEND:20261110T110000Z');
+    expect(ics).toContain('DTSTART:20261110T230000Z'); // jantar 20:00
+    expect(ics).toContain('RRULE:FREQ=DAILY');
+    expect(ics).toContain('TRIGGER:PT0M');
+    expect(ics).toContain('SUMMARY:🍽️ Almoço');
+    // nenhuma linha passa de 75 bytes; vírgula do texto vai escapada
+    expect(linhas.every((x) => new TextEncoder().encode(x).length <= 75)).toBe(true);
+    expect(escaparIcs('a, b; c')).toBe(String.raw`a\, b\; c`);
+    expect(dobrarLinha('á'.repeat(60)).split('\r\n ').length).toBe(2);
+  });
+
+  it('o dia do começo é o de Brasília, mesmo de madrugada em UTC', () => {
+    const ics = calendarioDeLembretes(vini, planoVini, { refeicoes: true, agua: 0 }, new Date('2026-11-11T01:30:00Z')); // 22:30 do dia 10
+    expect(ics).toContain('DTSTART:20261110T103000Z');
+  });
+});
+
+describe('registrar com um toque', () => {
+  it('"o de sempre" é o mais comido; refeição só marcada não conta', () => {
+    const regs = [
+      refeicao({ tipo: 'almoco', descricao: 'Arroz e feijão', dia: '2026-11-01' }),
+      refeicao({ tipo: 'almoco', descricao: 'arroz e feijao', dia: '2026-11-02' }),
+      refeicao({ tipo: 'almoco', descricao: 'Lasanha', dia: '2026-11-08' }),
+      refeicao({ tipo: 'almoco', descricao: SEM_DETALHES, dia: '2026-11-09' }),
+      refeicao({ tipo: 'almoco', descricao: SEM_DETALHES, dia: '2026-11-07' }),
+      refeicao({ tipo: 'almoco', descricao: SEM_DETALHES, dia: '2026-11-06' }),
+    ];
+    expect(oDeSempre(regs, 1, 'almoco')).toBe('arroz e feijao');
+    expect(maisComidos(regs, 1, 'almoco')).toEqual(['arroz e feijao', 'Lasanha']);
+    expect(oDeSempre(regs, 1, 'jantar')).toBeNull();
+    expect(oDeSempre([refeicao({ tipo: 'cafe', descricao: SEM_DETALHES })], 1, 'cafe')).toBeNull();
   });
 });

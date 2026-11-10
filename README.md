@@ -25,7 +25,7 @@ de tudo.
 | `src/` | Telas (Svelte 5): Hoje, Histórico, Ajustes e as gavetas de refeição e água |
 | `migrations/` | Estrutura do banco |
 | `tests/` | Testes da lógica (`npm test`) |
-| `scripts/testar-api.mjs` | 39 verificações da API contra o servidor local |
+| `scripts/testar-api.mjs` | 42 verificações da API contra o servidor local |
 | `scripts/embutir.mjs` | Embute o site dentro do Worker no `npm run build` (mesmo do `nossoap`) |
 
 ## Rodar no computador
@@ -91,7 +91,8 @@ dado fica exposto.
   ontem.
 - **Resumo calculado no aparelho**: ao abrir vêm os últimos 35 dias numa
   chamada só (`/api/dados`). Dia mais antigo é buscado quando alguém abre.
-- **Sem service worker e sem notificações**, pelo mesmo motivo dos outros
-  apps: o Access redireciona para o login, e cache offline no meio disso dá
-  tela em branco. Notificação no celular precisaria de service worker.
+- **Sem service worker e sem notificações próprias**, pelo mesmo motivo dos
+  outros apps: o Access redireciona para o login, e cache offline no meio
+  disso dá tela em branco. No lugar, os **lembretes vão para o calendário do
+  celular** por um arquivo `.ics` (`shared/lembretes.ts`), e é ele que avisa.
 - **A API confere o e-mail de novo** (`EMAILS_PERMITIDOS`), além do Access.
