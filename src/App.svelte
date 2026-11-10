@@ -213,8 +213,8 @@
     border-radius: 50%;
     border: 4px solid var(--fundo);
     background: var(--marca);
-    color: #ffffff;
-    box-shadow: 0 8px 20px rgb(23 38 31 / 0.28);
+    color: var(--sobre-marca);
+    box-shadow: 0 8px 20px rgb(0 0 0 / 0.28);
     transition: transform var(--mov);
   }
   .mais:active { transform: scale(0.94); }

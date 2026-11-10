@@ -38,9 +38,16 @@
 <div class="grafico" bind:clientWidth={largura}>
   <svg width={largura} height={ALTURA} role="img" aria-label="Água por dia, em ml, com a linha da meta de {formatarMl(meta)}">
     <!-- linha de base e meta: discretas, para não competir com as barras -->
+    <!-- Degradê na própria cor da água: mais claro no topo, cor cheia na base.
+         Uma série só, então é enfeite, não informação. -->
+    <defs>
+      <linearGradient id="degrade-agua" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" class="topo-degrade" />
+        <stop offset="100%" class="base-degrade" />
+      </linearGradient>
+    </defs>
     <line x1="0" x2={largura} y1={TOPO + area} y2={TOPO + area} class="eixo" />
     <line x1="0" x2={largura} y1={y(meta)} y2={y(meta)} class="meta" />
-    <text x={largura} y={y(meta) - 6} text-anchor="end" class="rotulo-meta">meta {formatarMl(meta)}</text>
 
     {#each dias as d, i (d.dia)}
       <!-- área de toque maior que a barra -->
@@ -65,6 +72,7 @@
       <span class="num">{formatarMl(dica.agua_ml)}{dica.bateu_agua ? ' · meta batida' : ''}</span>
     </div>
   {/if}
+  <p class="legenda-meta"><svg width="22" height="6" aria-hidden="true"><line x1="0" x2="22" y1="3" y2="3" class="meta" /></svg> meta de {formatarMl(meta)} por dia</p>
 </div>
 
 <style>
@@ -72,10 +80,12 @@
   svg { display: block; overflow: visible; }
   .eixo { stroke: var(--borda); stroke-width: 1; }
   .meta { stroke: var(--texto-3); stroke-width: 1.5; stroke-dasharray: 4 4; }
-  .rotulo-meta { font-size: 11px; fill: var(--texto-3); font-weight: 600; }
+  .legenda-meta { display: flex; align-items: center; gap: 6px; margin-top: var(--esp-2); font-size: var(--fs-100); color: var(--texto-3); }
   .eixo-texto { font-size: 11px; fill: var(--texto-3); text-transform: capitalize; }
   .eixo-texto.hoje { fill: var(--texto); font-weight: 700; }
-  .barra-agua { fill: var(--agua-barra); transition: opacity var(--mov); pointer-events: none; }
+  .barra-agua { fill: url(#degrade-agua); transition: opacity var(--mov); pointer-events: none; }
+  .topo-degrade { stop-color: var(--agua-barra); stop-opacity: 0.55; }
+  .base-degrade { stop-color: var(--agua-barra); stop-opacity: 1; }
   .barra-agua.apagada { opacity: 0.45; }
   .alvo { fill: transparent; cursor: pointer; outline: none; }
   .dica {
@@ -85,8 +95,8 @@
     gap: 1px;
     padding: 6px 10px;
     border-radius: var(--r-1);
-    background: var(--texto);
-    color: #fff;
+    background: var(--dica-fundo);
+    color: var(--sobre-dica);
     font-size: var(--fs-200);
     white-space: nowrap;
     pointer-events: none;

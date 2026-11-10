@@ -103,8 +103,25 @@ Para ter a mesma cara caprichada dos outros dois apps (a maquete 3D do
 - Todas as cores novas conferidas: ícones a 4:1 ou mais no fundo deles,
   branco sobre as cores das pessoas a 5:1 ou mais.
 
-Segunda rodada combinada, ainda não feita: histórico com calendário de
-gotinhas e tema escuro opcional.
+### Segunda rodada (10/11/2026)
+
+- **Histórico** abre com a **sequência** em destaque: chama acesa, "N dias
+  seguidos" e o **recorde** ("seu recorde!" quando empata). Se hoje ainda
+  não bateu, convida: "Bata hoje para virar N+1!".
+- **Calendário de gotinhas** do mês (domingo primeiro): gota cheia = bateu a
+  meta, pela metade = 50% ou mais, quase vazia = um pouco, vazia = nada. Hoje
+  tem contorno azul; dias futuros apagados. Setas trocam de mês (o mês antigo
+  é buscado no servidor). Tocar num dia abre ele.
+- Médias logo abaixo, com 7/30 dias; barras do gráfico em degradê da própria
+  cor da água, e a linha da meta explicada numa legenda embaixo (o rótulo em
+  cima das barras tapava a última).
+- **Tema escuro** azul-noite. Ajustes → Aparência: Automático (segue o
+  celular, padrão), Claro ou Escuro, guardado no aparelho. O `index.html`
+  aplica o tema antes de desenhar, para não piscar claro. No escuro o verde
+  e o azul ficam claros e o texto dos botões verdes fica escuro. Todas as
+  cores do escuro conferidas: textos a 5:1 ou mais, ícones de refeição a 6:1.
+- As cores que estavam fixas nos componentes (aviso, dica do gráfico, linha
+  do dia, barra de calorias, véu da gaveta) viraram variáveis do tema.
 
 ## Infraestrutura
 

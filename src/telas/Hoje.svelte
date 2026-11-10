@@ -329,7 +329,7 @@
     padding: var(--esp-2);
     border: 0;
     border-radius: var(--r-btn);
-    background: #ffffff;
+    background: var(--superficie);
     color: var(--agua);
     font-weight: var(--fw-semi);
     box-shadow: 0 4px 12px rgb(10 40 70 / 0.18);
@@ -368,7 +368,7 @@
   .kcal-texto { flex: 1; min-width: 0; }
   .meta { font-size: var(--fs-200); color: var(--texto-3); }
   .kcal-barra { flex-basis: 100%; }
-  .kcal-barra > i { background: #b14a12; }
+  .kcal-barra > i { background: var(--kcal); }
 
   /* ---------- refeições ---------- */
   .refeicoes { margin-top: var(--esp-5); padding-bottom: var(--esp-2); }
@@ -393,7 +393,7 @@
     border-radius: 2px;
     background: var(--borda);
   }
-  li.feita:not(:last-child) .marcador::after { background: #c9d6c6; }
+  li.feita:not(:last-child) .marcador::after { background: var(--linha-feita); }
 
   .icone-refeicao.pendente { background: var(--superficie); color: var(--texto-3); box-shadow: inset 0 0 0 1.5px var(--borda); }
   .atrasada .icone-refeicao.pendente { background: var(--alerta-suave); color: var(--alerta); box-shadow: none; }

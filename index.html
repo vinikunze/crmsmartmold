@@ -4,7 +4,17 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#F5F7F2" />
-    <meta name="color-scheme" content="light" />
+    <meta name="color-scheme" content="light dark" />
+    <!-- Tema antes de desenhar a página, para não piscar claro no modo escuro.
+         A mesma regra está em src/lib/tema.ts, que cuida das mudanças depois. -->
+    <script>
+      (function () {
+        var e = 'auto';
+        try { e = localStorage.getItem('emdia:tema') || 'auto'; } catch (x) {}
+        var escuro = e === 'escuro' || (e === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.dataset.tema = escuro ? 'escuro' : 'claro';
+      })();
+    </script>
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="em dia." />

@@ -6,6 +6,7 @@ import {
 import { tipoPelaHora, maisComidos } from '../shared/sugestoes';
 import { normalizar } from '../shared/texto';
 import { saudacao, fraseDoMomento } from '../shared/momento';
+import { semanasDoMes, somarMeses, mesDe, nomeDoMes, nivelGota, recordeAgua } from '../shared/calendario';
 import type { Agua, Horario, Pessoa, Refeicao } from '../shared/tipos';
 
 let n = 0;
@@ -213,5 +214,38 @@ describe('saudação e frase do momento', () => {
     expect(fraseDoMomento({ ...base, tomado: 2000, linha: linhaAs('09:00', regs), agora: '09:00' })).toBe('Meta de água batida hoje. 💧');
     expect(fraseDoMomento({ ...base, linha: linhaAs('09:00', regs), agora: '09:00' })).toBe('Próxima refeição: almoço às 12:00.');
     expect(fraseDoMomento({ ...base, linha: [], agora: '09:00' })).toBe('Faltam 1 L para a meta de água.');
+  });
+});
+
+describe('calendário de gotinhas', () => {
+  it('semanas começam no domingo; dias de fora são null', () => {
+    const s = semanasDoMes('2026-11'); // 1/11/2026 é domingo
+    expect(s[0]).toEqual(['2026-11-01', '2026-11-02', '2026-11-03', '2026-11-04', '2026-11-05', '2026-11-06', '2026-11-07']);
+    expect(s).toHaveLength(5);
+    expect(s[4]).toEqual(['2026-11-29', '2026-11-30', null, null, null, null, null]);
+    const dez = semanasDoMes('2026-12'); // 1/12/2026 é terça
+    expect(dez[0].slice(0, 3)).toEqual([null, null, '2026-12-01']);
+    expect(dez.flat().filter(Boolean)).toHaveLength(31);
+  });
+
+  it('soma meses atravessando o ano', () => {
+    expect(somarMeses('2026-12', 1)).toBe('2027-01');
+    expect(somarMeses('2026-01', -1)).toBe('2025-12');
+    expect(mesDe('2026-11-09')).toBe('2026-11');
+    expect(nomeDoMes('2026-11')).toMatch(/novembro/);
+  });
+
+  it('nível da gota', () => {
+    expect(nivelGota(2000, 2000)).toBe('cheia');
+    expect(nivelGota(1000, 2000)).toBe('metade');
+    expect(nivelGota(250, 2000)).toBe('pouca');
+    expect(nivelGota(0, 2000)).toBe('vazia');
+  });
+
+  it('recorde de dias seguidos', () => {
+    const dias = (bateu: boolean[]) =>
+      bateu.map((b, i) => ({ dia: somarDias('2026-11-01', i), agua_ml: 0, bateu_agua: b, refeicoes: 0, do_plano: 0, plano: 0, kcal: null }));
+    expect(recordeAgua(dias([true, true, false, true, true, true, false, true]))).toBe(3);
+    expect(recordeAgua(dias([false, false]))).toBe(0);
   });
 });

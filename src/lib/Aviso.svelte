@@ -27,13 +27,13 @@
     max-width: calc(100vw - 32px);
     padding: var(--esp-3) var(--esp-4);
     border-radius: var(--r-1);
-    background: var(--marca-forte);
-    color: #ffffff;
+    background: var(--aviso-fundo);
+    color: var(--sobre-aviso);
     font-size: var(--fs-300);
     box-shadow: var(--sombra-alta);
     animation: surgir var(--mov);
   }
-  .aviso.erro { background: var(--vermelho); color: #ffffff; }
+  .aviso.erro { background: var(--erro-fundo); color: var(--sobre-erro); }
   button {
     border: 0;
     background: none;
