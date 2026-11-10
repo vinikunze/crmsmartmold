@@ -1,13 +1,17 @@
 <script lang="ts">
-  // O dia de uma pessoa: água (com botões de um toque) e as refeições, as do
-  // plano de horários e as de fora dele, em ordem de hora.
-  import { ChevronLeft, ChevronRight, GlassWater, CupSoda, Plus, Clock, Check, Flame } from '@lucide/svelte';
+  // O dia de uma pessoa: saudação com a frase do momento, os dois lado a lado,
+  // a garrafa que enche (com botões de um toque) e a linha do dia com as
+  // refeições do plano e as de fora dele, cada uma com a sua cor.
+  import { ChevronLeft, ChevronRight, GlassWater, CupSoda, Plus, Clock, Flame, Utensils } from '@lucide/svelte';
+  import { untrack } from 'svelte';
   import { estado } from '../lib/estado.svelte';
   import EscolhaPessoa from '../lib/EscolhaPessoa.svelte';
+  import Garrafa from '../lib/Garrafa.svelte';
   import Icone from '../lib/Icone.svelte';
-  import { nomeDoDia, somarDias, diasEntre, dataLonga } from '../../shared/datas';
+  import { nomeDoDia, somarDias, dataLonga, diasEntre } from '../../shared/datas';
   import { nomeDaRefeicao } from '../../shared/tipos';
   import { aguaDoDia, porcentagem, formatarMl, ritmoAgua, linhaDoTempo, kcalDoDia, type ItemLinha } from '../../shared/resumo';
+  import { saudacao, fraseDoMomento } from '../../shared/momento';
 
   let { dia }: { dia: string } = $props();
 
@@ -21,6 +25,7 @@
   });
 
   const p = $derived(estado.pessoa);
+  const eu = $derived(estado.pessoas.find((x) => x.id === estado.eu));
   const ehHoje = $derived(dia === estado.relogio.dia);
   const ontem = $derived(somarDias(dia, -1));
   const amanha = $derived(somarDias(dia, 1));
@@ -29,7 +34,6 @@
   const pct = $derived(p ? porcentagem(tomado, p.meta_agua_ml) : 0);
   const falta = $derived(p ? Math.max(0, p.meta_agua_ml - tomado) : 0);
   const ritmo = $derived(p && ehHoje ? ritmoAgua(tomado, p.meta_agua_ml, estado.relogio.hora) : null);
-  const copos = $derived(p ? estado.agua.filter((a) => a.pessoa_id === p.id && a.dia === dia).length : 0);
 
   const linha = $derived(
     p ? linhaDoTempo(estado.horarios, estado.refeicoes, p.id, dia, estado.relogio.dia, estado.relogio.hora) : [],
@@ -38,6 +42,43 @@
   const mostrarKcal = $derived(!!p && (p.meta_kcal !== null || kcal.registradas > 0));
   const feitas = $derived(linha.filter((l) => l.previsto && l.estado === 'feita').length);
   const doPlano = $derived(linha.filter((l) => l.previsto).length);
+
+  const ola = $derived(saudacao(estado.relogio.hora));
+  const emoji = $derived(ola === 'Bom dia' ? '☀️' : ola === 'Boa tarde' ? '🌤️' : '🌙');
+  const frase = $derived.by(() => {
+    if (!p || !ehHoje) return dataLonga(dia);
+    const f = fraseDoMomento({
+      linha, agora: estado.relogio.hora, tomado, meta: p.meta_agua_ml, ritmo: ritmo?.diferenca ?? null, copo: p.copo_ml,
+    });
+    // Olhando o dia do outro: diz de quem é.
+    return p.id === estado.eu ? f : `${p.nome}: ${f.charAt(0).toLowerCase()}${f.slice(1)}`;
+  });
+
+  // Animações: bolhas a cada copo novo; festa ao cruzar a meta. Só quando a
+  // água da MESMA pessoa no MESMO dia sobe (trocar de pessoa não anima).
+  let respingo = $state(0);
+  let festa = $state(false);
+  let anterior: { chave: string; ml: number } | null = null;
+  let timerFesta: ReturnType<typeof setTimeout> | undefined;
+  $effect(() => {
+    const chave = `${p?.id}:${dia}`;
+    const ml = tomado;
+    const meta = p?.meta_agua_ml ?? 0;
+    untrack(() => {
+      if (anterior && anterior.chave === chave && ml > anterior.ml) {
+        respingo++;
+        if (anterior.ml < meta && ml >= meta) {
+          festa = true;
+          clearTimeout(timerFesta);
+          timerFesta = setTimeout(() => (festa = false), 2600);
+          navigator.vibrate?.([30, 60, 30, 60, 60]);
+        } else {
+          navigator.vibrate?.(15);
+        }
+      }
+      anterior = { chave, ml };
+    });
+  });
 
   function registrar(l: ItemLinha) {
     if (!p) return;
@@ -52,19 +93,37 @@
     mais_tarde: 'Mais tarde',
     nao_registrada: 'Não registrada',
   };
+
+  // "9 de novembro", junto de "Hoje" e "Ontem".
+  const diaCurtoExtenso = (d: string) =>
+    new Date(`${d}T12:00:00Z`).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', timeZone: 'UTC' });
+
+  const GOTAS = Array.from({ length: 14 }, (_, i) => ({ angulo: (i / 14) * 360, distancia: 70 + (i % 3) * 18, atraso: (i % 4) * 40 }));
 </script>
 
+<header class="ola">
+  <div class="ola-texto">
+    <h2>{ola}{eu ? `, ${eu.nome}` : ''}! <span aria-hidden="true">{emoji}</span></h2>
+    <p>{frase}</p>
+  </div>
+  <div class="avatares" aria-hidden="true">
+    {#each estado.pessoas as x, i (x.id)}
+      <span class="avatar cor-pessoa-{i % 2}">{x.nome.slice(0, 1).toUpperCase()}</span>
+    {/each}
+  </div>
+</header>
+
 <nav class="dias" aria-label="Escolher o dia">
-  <a class="seta" href="#hoje/{ontem}" aria-label="Dia anterior"><ChevronLeft size={22} /></a>
+  <a class="seta" href="#hoje/{ontem}" aria-label="Dia anterior"><ChevronLeft size={20} /></a>
   <div class="dia">
     <strong>{nomeDoDia(dia, estado.relogio.dia)}</strong>
-    {#if ehHoje || diasEntre(dia, estado.relogio.dia) === 1}<small>{dataLonga(dia)}</small>{/if}
+    {#if diasEntre(dia, estado.relogio.dia) <= 1}<span class="data">{diaCurtoExtenso(dia)}</span>{/if}
     {#if !ehHoje}<a class="link" href="#hoje">Voltar para hoje</a>{/if}
   </div>
   {#if ehHoje}
-    <span class="seta" aria-hidden="true"></span>
+    <span class="seta vazia" aria-hidden="true"></span>
   {:else}
-    <a class="seta" href="#hoje/{amanha}" aria-label="Dia seguinte"><ChevronRight size={22} /></a>
+    <a class="seta" href="#hoje/{amanha}" aria-label="Dia seguinte"><ChevronRight size={20} /></a>
   {/if}
 </nav>
 
@@ -76,26 +135,37 @@
   <p class="vazio">Carregando esse dia…</p>
 {:else}
   <section class="heroi" aria-labelledby="titulo-agua">
-    <div class="cab">
-      <p class="rotulo" id="titulo-agua"><GlassWater size={16} /> Água {ehHoje ? 'hoje' : 'no dia'}</p>
-      {#if pct >= 100}<p class="selo-bateu"><Check size={14} /> Meta batida</p>{/if}
-    </div>
-    <p class="grande num">{formatarMl(tomado)} <span class="de">de {formatarMl(p.meta_agua_ml)}</span></p>
-    <div class="barra clara" role="progressbar" aria-valuenow={Math.min(100, pct)} aria-valuemin={0} aria-valuemax={100} aria-label="Água do dia">
-      <i style:width="{Math.min(100, pct)}%"></i>
-    </div>
-    <p class="nota num">
-      {pct}% · {copos} {copos === 1 ? 'registro' : 'registros'}{#if falta > 0}{` · faltam ${formatarMl(falta)}`}{/if}
-    </p>
-    {#if ritmo && pct < 100}
-      <p class="nota ritmo">
-        {#if ritmo.diferenca >= 0}
-          No ritmo para bater a meta até as 22h.
-        {:else}
-          {formatarMl(-ritmo.diferenca)} atrás do ritmo: até agora o ideal seria {formatarMl(ritmo.esperado)}.
+    <div class="topo-heroi">
+      <button class="garrafa" onclick={() => estado.beber(p.id, dia, p.copo_ml)} aria-label="Tomar um copo de {formatarMl(p.copo_ml)}">
+        <Garrafa {pct} {respingo} />
+        {#if festa}
+          <span class="festa" aria-hidden="true">
+            {#each GOTAS as g, i (i)}
+              <i style:--angulo="{g.angulo}deg" style:--distancia="{g.distancia}px" style:animation-delay="{g.atraso}ms"></i>
+            {/each}
+          </span>
         {/if}
-      </p>
-    {/if}
+      </button>
+
+      <div class="info">
+        <p class="rotulo" id="titulo-agua"><GlassWater size={16} /> Água {ehHoje ? 'hoje' : 'no dia'}</p>
+        <p class="grande num">{formatarMl(tomado)}</p>
+        <p class="de num">de {formatarMl(p.meta_agua_ml)} · {pct}%</p>
+        {#if festa}
+          <p class="parabens" role="status">Meta batida! 🎉</p>
+        {:else if pct >= 100}
+          <p class="nota forte">Meta batida{ehHoje ? ' hoje' : ''}. 💧</p>
+        {:else}
+          <p class="nota">Faltam {formatarMl(falta)}</p>
+          {#if ritmo}
+            <p class="nota">
+              {ritmo.diferenca >= 0 ? 'No ritmo até as 22h' : `${formatarMl(-ritmo.diferenca)} atrás do ritmo`}
+            </p>
+          {/if}
+        {/if}
+      </div>
+    </div>
+
     <div class="beber">
       <button class="botao-agua" onclick={() => estado.beber(p.id, dia, p.copo_ml)}>
         <GlassWater size={20} /> <span>Copo<small class="num">{formatarMl(p.copo_ml)}</small></span>
@@ -111,7 +181,7 @@
 
   {#if mostrarKcal}
     <div class="cartao kcal">
-      <span class="icone-refeicao"><Flame size={20} /></span>
+      <span class="icone-refeicao ref-lanche_tarde"><Flame size={20} /></span>
       <div class="kcal-texto">
         <p><strong class="num">{kcal.total.toLocaleString('pt-BR')} kcal</strong>{#if p.meta_kcal} <span class="meta num">de {p.meta_kcal.toLocaleString('pt-BR')}</span>{/if}</p>
         <p class="meta">{kcal.registradas === 0 ? 'Nenhuma refeição com calorias' : `Somando ${kcal.registradas} ${kcal.registradas === 1 ? 'refeição' : 'refeições'} com calorias`}</p>
@@ -122,80 +192,134 @@
     </div>
   {/if}
 
-  <div class="cab-secao">
-    <h2 class="secao">Refeições</h2>
-    {#if doPlano}<p class="contagem num">{feitas} de {doPlano} do plano</p>{/if}
-  </div>
+  <section class="cartao refeicoes" aria-labelledby="titulo-refeicoes">
+    <div class="cab-cartao">
+      <span class="icone-refeicao ref-almoco"><Utensils size={20} /></span>
+      <div>
+        <h2 id="titulo-refeicoes">Refeições</h2>
+        <p>{ehHoje ? (p.id === estado.eu ? 'O seu dia até agora' : `O dia de ${p.nome} até agora`) : 'O que foi registrado'}</p>
+      </div>
+      {#if doPlano}
+        <div class="direita">
+          <p class="contagem num"><strong>{feitas}</strong> de {doPlano}</p>
+          <p>do plano</p>
+        </div>
+      {/if}
+    </div>
 
-  {#if linha.length === 0}
-    <p class="cartao vazio">
-      Nada registrado {ehHoje ? 'ainda hoje' : 'nesse dia'}. Toque em <strong>+</strong> para lançar uma refeição,
-      ou monte o plano de horários em <a href="#ajustes">Ajustes</a>.
-    </p>
-  {:else}
-    <ol class="cartao linha">
-      {#each linha as l (l.tipo + l.hora + (l.refeicoes[0]?.id ?? ''))}
-        <li class={l.estado}>
-          <span class="hora num">{l.hora}</span>
-          <span class="icone-refeicao" class:apagado={l.estado !== 'feita'}><Icone tipo={l.tipo} /></span>
-          <div class="corpo">
-            <div class="topo-item">
-              <strong>{nomeDaRefeicao(l.tipo)}</strong>
-              {#if l.estado !== 'feita'}
-                <span class="selo {l.estado}">{ROTULO[l.estado]}</span>
-              {:else if l.previsto && l.refeicoes[0].hora !== l.previsto}
-                <span class="previsto num"><Clock size={12} /> previsto {l.previsto}</span>
+    {#if linha.length === 0}
+      <p class="vazio">
+        Nada registrado {ehHoje ? 'ainda hoje' : 'nesse dia'}. Toque em <strong>+</strong> para lançar uma refeição,
+        ou monte o plano de horários em <a href="#ajustes">Ajustes</a>.
+      </p>
+    {:else}
+      <ol class="linha">
+        {#each linha as l (l.tipo + l.hora + (l.refeicoes[0]?.id ?? ''))}
+          <li class={l.estado}>
+            <span class="hora num">{l.hora}</span>
+            <span class="marcador">
+              <span class="icone-refeicao {l.estado === 'feita' ? `ref-${l.tipo}` : 'pendente'}"><Icone tipo={l.tipo} /></span>
+            </span>
+            <div class="corpo">
+              <div class="topo-item">
+                <strong>{nomeDaRefeicao(l.tipo)}</strong>
+                {#if l.estado !== 'feita'}
+                  <span class="selo {l.estado}">{ROTULO[l.estado]}</span>
+                {:else if l.previsto && l.refeicoes[0].hora !== l.previsto}
+                  <span class="previsto num"><Clock size={12} /> previsto {l.previsto}</span>
+                {/if}
+              </div>
+              {#if l.refeicoes.length}
+                {#each l.refeicoes as r (r.id)}
+                  <button class="comida" onclick={() => (estado.gaveta = { tipo: 'editar', refeicao: r })}>
+                    <span>{r.descricao}</span>
+                    {#if l.refeicoes.length > 1 || r.kcal}
+                      <small class="num">{#if l.refeicoes.length > 1}{r.hora}{/if}{#if l.refeicoes.length > 1 && r.kcal} · {/if}{#if r.kcal}{r.kcal} kcal{/if}</small>
+                    {/if}
+                  </button>
+                {/each}
+              {:else}
+                <button class="link" onclick={() => registrar(l)}>Registrar {nomeDaRefeicao(l.tipo).toLowerCase()}</button>
               {/if}
             </div>
-            {#if l.refeicoes.length}
-              {#each l.refeicoes as r (r.id)}
-                <button class="comida" onclick={() => (estado.gaveta = { tipo: 'editar', refeicao: r })}>
-                  <span>{r.descricao}</span>
-                  {#if l.refeicoes.length > 1 || r.kcal}
-                    <small class="num">{#if l.refeicoes.length > 1}{r.hora}{/if}{#if l.refeicoes.length > 1 && r.kcal} · {/if}{#if r.kcal}{r.kcal} kcal{/if}</small>
-                  {/if}
-                </button>
-              {/each}
-            {:else}
-              <button class="link" onclick={() => registrar(l)}>Registrar {nomeDaRefeicao(l.tipo).toLowerCase()}</button>
-            {/if}
-          </div>
-        </li>
-      {/each}
-    </ol>
-  {/if}
+          </li>
+        {/each}
+      </ol>
+    {/if}
+  </section>
 {/if}
 
 <style>
-  .dias { display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; margin-bottom: var(--esp-3); }
-  .seta { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; color: var(--texto-2); }
-  a.seta:hover { background: var(--superficie-2); }
-  .dia { display: grid; justify-items: center; text-align: center; }
-  .dia strong { font-size: var(--fs-500); }
-  .dia small { font-size: var(--fs-200); color: var(--texto-3); }
+  /* ---------- saudação ---------- */
+  .ola { display: flex; align-items: center; justify-content: space-between; gap: var(--esp-3); margin: var(--esp-1) 0 var(--esp-4); }
+  .ola-texto { min-width: 0; }
+  .ola h2 { font-size: var(--fs-600); font-weight: var(--fw-bold); letter-spacing: -0.02em; line-height: 1.2; }
+  .ola p { margin-top: 2px; font-size: var(--fs-300); color: var(--texto-2); }
+  .avatares { display: flex; flex: none; }
+  .avatar {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 3px solid var(--fundo);
+    color: #fff;
+    font-weight: var(--fw-bold);
+  }
+  .avatar + .avatar { margin-left: -12px; }
+
+  /* ---------- dia ---------- */
+  .dias {
+    display: grid;
+    grid-template-columns: 40px 1fr 40px;
+    align-items: center;
+    margin-bottom: var(--esp-3);
+    padding: 2px;
+    border-radius: 999px;
+    background: var(--superficie-2);
+  }
+  .seta { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; color: var(--texto-2); }
+  a.seta:hover { background: var(--superficie); }
+  .dia { display: flex; flex-wrap: wrap; justify-content: center; align-items: baseline; gap: 0 var(--esp-2); text-align: center; }
+  .dia strong { font-size: var(--fs-300); }
+  .dia .data { font-size: var(--fs-300); color: var(--texto-3); }
   .dia .link { padding: 0; font-size: var(--fs-200); }
 
+  /* ---------- água ---------- */
   .heroi {
+    position: relative;
     margin-top: var(--esp-4);
     display: grid;
-    gap: var(--esp-2);
+    gap: var(--esp-4);
     padding: var(--esp-5);
-    border-radius: var(--r-3);
-    background: var(--heroi);
+    border-radius: 22px;
+    background:
+      radial-gradient(120% 80% at 0% 0%, rgb(143 208 255 / 0.28) 0%, transparent 60%),
+      var(--heroi);
     color: #fff;
     box-shadow: var(--sombra-alta);
+    overflow: hidden;
   }
-  .cab { display: flex; justify-content: space-between; align-items: center; gap: var(--esp-2); }
+  .topo-heroi { display: grid; grid-template-columns: 112px 1fr; align-items: center; gap: var(--esp-5); }
+  .garrafa {
+    position: relative;
+    width: 112px;
+    height: 190px;
+    padding: 0;
+    border: 0;
+    background: none;
+    transition: transform var(--mov);
+  }
+  .garrafa:active { transform: scale(0.96); }
+  .info { display: grid; gap: 2px; min-width: 0; }
   .rotulo { display: flex; align-items: center; gap: 6px; font-size: var(--fs-100); font-weight: var(--fw-semi); letter-spacing: 0.06em; text-transform: uppercase; color: rgb(255 255 255 / 0.88); }
-  .selo-bateu { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 6px; background: rgb(255 255 255 / 0.16); font-size: var(--fs-100); font-weight: var(--fw-semi); }
-  .grande { font-size: var(--fs-800); font-weight: var(--fw-bold); color: var(--agua-clara); line-height: 1.1; }
-  .de { font-size: var(--fs-500); font-weight: var(--fw-medium); color: rgb(255 255 255 / 0.88); }
+  .grande { font-size: 2.75rem; font-weight: var(--fw-bold); color: var(--agua-clara); line-height: 1.05; letter-spacing: -0.03em; margin-top: var(--esp-1); }
+  .de { font-size: var(--fs-400); font-weight: var(--fw-medium); color: rgb(255 255 255 / 0.9); margin-bottom: var(--esp-2); }
   .nota { font-size: var(--fs-200); color: rgb(255 255 255 / 0.88); }
-  .ritmo { font-weight: var(--fw-medium); }
-  .barra.clara { height: 10px; background: rgb(255 255 255 / 0.18); }
-  .barra.clara > i { background: var(--agua-clara); }
+  .nota.forte, .parabens { font-weight: var(--fw-semi); color: #fff; }
+  .parabens { font-size: var(--fs-500); animation: pulo 600ms cubic-bezier(0.2, 1.6, 0.4, 1); }
 
-  .beber { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--esp-2); margin-top: var(--esp-3); }
+  .beber { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--esp-2); }
   .botao-agua {
     display: flex;
     align-items: center;
@@ -208,47 +332,99 @@
     background: #ffffff;
     color: var(--agua);
     font-weight: var(--fw-semi);
+    box-shadow: 0 4px 12px rgb(10 40 70 / 0.18);
     transition: transform var(--mov), background var(--mov);
   }
   .botao-agua:hover { background: var(--agua-suave); }
-  .botao-agua:active { transform: scale(0.96); }
+  .botao-agua:active { transform: scale(0.95); }
   .botao-agua :global(svg) { flex: none; }
   .botao-agua span { display: grid; line-height: 1.15; text-align: left; font-size: var(--fs-300); }
   .botao-agua small { font-size: var(--fs-100); font-weight: var(--fw-medium); color: var(--texto-3); }
 
+  /* gotas que saem da garrafa ao bater a meta */
+  .festa { position: absolute; left: 50%; top: 45%; pointer-events: none; }
+  .festa i {
+    position: absolute;
+    width: 10px;
+    height: 13px;
+    margin: -6px 0 0 -5px;
+    border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+    background: #cdeaff;
+    opacity: 0;
+    animation: gota 1200ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  }
+  .festa i:nth-child(3n) { background: #ffffff; }
+  .festa i:nth-child(4n) { background: var(--sol); }
+
+  @keyframes gota {
+    0% { opacity: 1; transform: rotate(var(--angulo)) translateY(0) scale(0.4); }
+    70% { opacity: 1; }
+    100% { opacity: 0; transform: rotate(var(--angulo)) translateY(calc(-1 * var(--distancia))) scale(1); }
+  }
+  @keyframes pulo { from { transform: scale(0.6); opacity: 0; } }
+
+  /* ---------- calorias ---------- */
   .kcal { display: flex; flex-wrap: wrap; align-items: center; gap: var(--esp-3); margin-top: var(--esp-4); }
   .kcal-texto { flex: 1; min-width: 0; }
   .meta { font-size: var(--fs-200); color: var(--texto-3); }
   .kcal-barra { flex-basis: 100%; }
-  .kcal-barra > i { background: var(--marca); }
+  .kcal-barra > i { background: #b14a12; }
 
-  .cab-secao { display: flex; align-items: baseline; justify-content: space-between; gap: var(--esp-2); }
-  .contagem { font-size: var(--fs-200); color: var(--texto-3); }
+  /* ---------- refeições ---------- */
+  .refeicoes { margin-top: var(--esp-5); padding-bottom: var(--esp-2); }
+  .contagem { font-size: var(--fs-300); color: var(--texto-2); }
+  .contagem strong { font-size: var(--fs-500); color: var(--texto); }
 
-  .linha { list-style: none; margin: 0; padding: 0 var(--esp-3); }
-  .linha li { display: flex; align-items: flex-start; gap: var(--esp-3); padding: var(--esp-3) 0; border-bottom: 1px solid var(--borda); }
-  .linha li:last-child { border-bottom: 0; }
-  .hora { flex: none; width: 3.2em; padding-top: 10px; font-size: var(--fs-200); font-weight: var(--fw-semi); color: var(--texto-2); }
-  .icone-refeicao.apagado { background: var(--superficie-2); color: var(--texto-3); }
-  .atrasada .icone-refeicao.apagado { background: var(--alerta-suave); color: var(--alerta); }
-  .proxima .icone-refeicao.apagado { background: var(--agua-suave); color: var(--agua); }
-  .corpo { flex: 1; min-width: 0; display: grid; gap: 2px; padding-top: 2px; }
+  .linha { list-style: none; margin: 0; padding: 0; }
+  .linha li { display: grid; grid-template-columns: 3em 40px 1fr; gap: var(--esp-3); align-items: start; padding-bottom: var(--esp-4); }
+  .hora { padding-top: 10px; font-size: var(--fs-200); font-weight: var(--fw-semi); color: var(--texto-2); text-align: right; }
+  li:not(.feita) .hora { color: var(--texto-3); font-weight: var(--fw-medium); }
+
+  /* a linha vertical que liga uma refeição à seguinte */
+  .marcador { position: relative; display: grid; justify-items: center; align-self: stretch; }
+  li:not(:last-child) .marcador::after {
+    content: '';
+    position: absolute;
+    top: 44px;
+    bottom: calc(-1 * var(--esp-4) + 4px);
+    left: 50%;
+    width: 2px;
+    margin-left: -1px;
+    border-radius: 2px;
+    background: var(--borda);
+  }
+  li.feita:not(:last-child) .marcador::after { background: #c9d6c6; }
+
+  .icone-refeicao.pendente { background: var(--superficie); color: var(--texto-3); box-shadow: inset 0 0 0 1.5px var(--borda); }
+  .atrasada .icone-refeicao.pendente { background: var(--alerta-suave); color: var(--alerta); box-shadow: none; }
+  .proxima .icone-refeicao.pendente { background: var(--agua-suave); color: var(--agua); box-shadow: inset 0 0 0 1.5px var(--agua); }
+
+  .corpo { min-width: 0; display: grid; gap: 2px; padding-top: 2px; }
   .topo-item { display: flex; flex-wrap: wrap; align-items: center; gap: var(--esp-2); min-height: 24px; }
   .previsto { display: inline-flex; align-items: center; gap: 3px; font-size: var(--fs-100); color: var(--texto-3); }
   .comida {
     display: grid;
     gap: 1px;
     width: 100%;
-    padding: 2px 0;
+    padding: var(--esp-2) var(--esp-3);
+    margin-top: var(--esp-1);
     border: 0;
-    background: none;
+    border-radius: var(--r-1);
+    background: var(--fundo);
     text-align: left;
     color: var(--texto-2);
     font-size: var(--fs-300);
+    transition: background var(--mov);
   }
-  .comida:hover span { text-decoration: underline; text-underline-offset: 3px; }
+  .comida:hover { background: var(--superficie-2); }
   .comida span { overflow-wrap: anywhere; }
   .comida small { font-size: var(--fs-100); color: var(--texto-3); }
   .corpo .link { justify-self: start; padding: 2px 0; }
   .nao_registrada strong, .mais_tarde strong { color: var(--texto-2); font-weight: var(--fw-medium); }
+
+  @media (max-width: 380px) {
+    .topo-heroi { grid-template-columns: 92px 1fr; gap: var(--esp-4); }
+    .garrafa { width: 92px; height: 156px; }
+    .grande { font-size: var(--fs-800); }
+  }
 </style>

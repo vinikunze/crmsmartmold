@@ -120,7 +120,7 @@
     <legend>Refeição</legend>
     <div class="opcoes tipos">
       {#each REFEICOES as r (r.tipo)}
-        <button type="button" class="chip" aria-pressed={tipo === r.tipo} onclick={() => (tipo = r.tipo)}>
+        <button type="button" class="chip ref-{r.tipo}" aria-pressed={tipo === r.tipo} onclick={() => (tipo = r.tipo)}>
           <Icone tipo={r.tipo} tamanho={16} /> {r.nome}
         </button>
       {/each}
@@ -184,6 +184,8 @@
   .dono { font-size: var(--fs-300); color: var(--texto-2); }
   .opcoes { display: flex; flex-wrap: wrap; gap: var(--esp-2); }
   .opcoes :global(svg) { flex: none; }
+  /* Ícone de cada refeição com a cor dela, como na linha do dia. */
+  .tipos .chip[aria-pressed='false'] :global(svg) { color: var(--ref-cor); }
   .dupla { display: grid; grid-template-columns: 1fr 1fr; gap: var(--esp-3); align-items: start; }
   .sugestoes { display: grid; gap: var(--esp-2); margin-top: calc(-1 * var(--esp-2)); }
   .sugestao { max-width: 100%; overflow: hidden; text-overflow: ellipsis; background: var(--marca-suave); border-color: transparent; color: var(--marca); }

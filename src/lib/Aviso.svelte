@@ -17,8 +17,8 @@
     position: fixed;
     z-index: 60;
     left: 50%;
-    /* acima do botão + (60px), para não cobri-lo */
-    bottom: calc(var(--barra-inferior) + 92px + env(safe-area-inset-bottom));
+    /* acima do botão + do meio da barra, que sobe um pouco */
+    bottom: calc(var(--barra-inferior) + 40px + env(safe-area-inset-bottom));
     transform: translateX(-50%);
     display: flex;
     align-items: center;

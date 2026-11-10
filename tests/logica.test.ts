@@ -5,6 +5,7 @@ import {
 } from '../shared/resumo';
 import { tipoPelaHora, maisComidos } from '../shared/sugestoes';
 import { normalizar } from '../shared/texto';
+import { saudacao, fraseDoMomento } from '../shared/momento';
 import type { Agua, Horario, Pessoa, Refeicao } from '../shared/tipos';
 
 let n = 0;
@@ -174,5 +175,43 @@ describe('sugestões', () => {
     ];
     expect(maisComidos(regs, 1, 'cafe')).toEqual(['Pão com ovo', 'Tapioca']);
     expect(normalizar('  Pão   COM ovo ')).toBe('pao com ovo');
+  });
+});
+
+describe('saudação e frase do momento', () => {
+  it('bom dia, boa tarde, boa noite', () => {
+    expect(saudacao('05:00')).toBe('Bom dia');
+    expect(saudacao('11:59')).toBe('Bom dia');
+    expect(saudacao('12:00')).toBe('Boa tarde');
+    expect(saudacao('18:00')).toBe('Boa noite');
+    expect(saudacao('02:00')).toBe('Boa noite');
+  });
+
+  const base = { tomado: 1000, meta: 2000, ritmo: 0, copo: 250 };
+  const linhaAs = (agora: string, regs: Refeicao[] = []) =>
+    linhaDoTempo(plano, regs, 1, '2026-11-09', '2026-11-09', agora);
+
+  it('refeição atrasada vem primeiro', () => {
+    expect(fraseDoMomento({ ...base, linha: linhaAs('09:00'), agora: '09:00', ritmo: -800 }))
+      .toBe('O café da manhã passou do horário. Já tomou?');
+  });
+
+  it('depois, água atrás do ritmo em copos', () => {
+    const regs = [refeicao({ tipo: 'cafe', hora: '07:40' })];
+    expect(fraseDoMomento({ ...base, linha: linhaAs('10:00', regs), agora: '10:00', ritmo: -600 }))
+      .toBe('3 copos de água para entrar no ritmo.');
+  });
+
+  it('próxima refeição em até 1 hora', () => {
+    const regs = [refeicao({ tipo: 'cafe', hora: '07:40' })];
+    expect(fraseDoMomento({ ...base, linha: linhaAs('11:20', regs), agora: '11:20' })).toBe('Almoço daqui a 40 min.');
+    expect(fraseDoMomento({ ...base, linha: linhaAs('12:10', regs), agora: '12:10' })).toBe('Hora do almoço.');
+  });
+
+  it('meta batida, depois próxima refeição distante, depois quanto falta', () => {
+    const regs = [refeicao({ tipo: 'cafe', hora: '07:40' })];
+    expect(fraseDoMomento({ ...base, tomado: 2000, linha: linhaAs('09:00', regs), agora: '09:00' })).toBe('Meta de água batida hoje. 💧');
+    expect(fraseDoMomento({ ...base, linha: linhaAs('09:00', regs), agora: '09:00' })).toBe('Próxima refeição: almoço às 12:00.');
+    expect(fraseDoMomento({ ...base, linha: [], agora: '09:00' })).toBe('Faltam 1 L para a meta de água.');
   });
 });

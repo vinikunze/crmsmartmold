@@ -251,3 +251,25 @@ textarea.entrada { padding: var(--esp-3); min-height: 84px; resize: vertical; }
 
 @keyframes encher { from { transform: scaleX(0); } }
 @keyframes surgir { from { opacity: 0; transform: translateY(6px); } }
+
+/* Cor de cada pessoa (iniciais), como no app de finanças: Vini azul, Sophia
+   rosa. Branco sobre elas passa de 5:1. */
+.cor-pessoa-0 { background: #2a66a8; }
+.cor-pessoa-1 { background: #b0457a; }
+
+/* Cor de cada refeição: ícone forte sobre fundo suave (todos acima de 4:1).
+   Usada nos quadradinhos de ícone da linha do dia e do formulário. */
+.ref-cafe { --ref-cor: #9a5b00; --ref-fundo: #fbefd9; }
+.ref-lanche_manha { --ref-cor: #8a6d00; --ref-fundo: #f6f0cf; }
+.ref-almoco { --ref-cor: #2b6a47; --ref-fundo: #e3efe5; }
+.ref-lanche_tarde { --ref-cor: #b14a12; --ref-fundo: #fde6d8; }
+.ref-jantar { --ref-cor: #6a46b0; --ref-fundo: #ece6f8; }
+.ref-ceia { --ref-cor: #3b4f9a; --ref-fundo: #e3e8f7; }
+.ref-outro { --ref-cor: #a23d6b; --ref-fundo: #f8e2ec; }
+.icone-refeicao[class*='ref-'] { background: var(--ref-fundo); color: var(--ref-cor); }
+
+/* Cartão com cabeçalho de ícone + título + subtítulo (padrão do app de finanças). */
+.cab-cartao { display: flex; align-items: center; gap: var(--esp-3); margin-bottom: var(--esp-3); }
+.cab-cartao h2 { font-size: var(--fs-500); font-weight: var(--fw-semi); line-height: 1.2; }
+.cab-cartao p { font-size: var(--fs-200); color: var(--texto-3); }
+.cab-cartao .direita { margin-left: auto; text-align: right; }
