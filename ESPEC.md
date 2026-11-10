@@ -77,6 +77,52 @@ mesmo sistema do `nossoap` (Inter, cartões, gavetas). Verde é ação e
 refeições; azul é água; laranja só para "passou do horário"; o ponto do logo
 é amarelo-sol. Todos os textos passam de 4,5:1.
 
+## Visual da tela Hoje, versão 2 (pedido do Vini, 09/11/2026)
+
+Para ter a mesma cara caprichada dos outros dois apps (a maquete 3D do
+`nossoap`, a saudação e os ícones coloridos do app de finanças):
+
+- **Garrafa que enche** no lugar da barra: água com ondas, sobe com animação
+  a cada copo (com bolhinhas). Tocar na garrafa toma um copo. Ao bater a meta,
+  gotas saem da garrafa, aparece "Meta batida! 🎉" e o celular vibra (Android;
+  o iPhone não deixa site vibrar).
+- **Saudação**: "Bom dia/Boa tarde/Boa noite, Vini!" com as iniciais dos dois
+  (Vini azul, Sophia rosa, como no app de finanças) e a **frase do momento**,
+  nesta ordem: refeição que passou do horário, quantos copos para entrar no
+  ritmo, próxima refeição em até 1 h, meta batida, próxima refeição, quanto
+  falta. Olhando o dia do outro, a frase começa com o nome dele.
+- **Os dois lado a lado**: cada botão de pessoa tem uma garrafinha com a água
+  do dia e o %.
+- **Linha do dia**: as refeições ligadas por uma linha vertical, cada uma com
+  a sua cor (café âmbar, lanche da manhã mostarda, almoço verde, lanche da
+  tarde laranja, jantar roxo, ceia anil, outro rosa). Pendente fica sem cor;
+  próxima em azul; atrasada em laranja. As mesmas cores nos ícones do
+  formulário.
+- **Barra de baixo**: Hoje · **+** (no meio, não cobre mais nada da tela) ·
+  Histórico. Ajustes virou a engrenagem no topo.
+- Todas as cores novas conferidas: ícones a 4:1 ou mais no fundo deles,
+  branco sobre as cores das pessoas a 5:1 ou mais.
+
+### Segunda rodada (10/11/2026)
+
+- **Histórico** abre com a **sequência** em destaque: chama acesa, "N dias
+  seguidos" e o **recorde** ("seu recorde!" quando empata). Se hoje ainda
+  não bateu, convida: "Bata hoje para virar N+1!".
+- **Calendário de gotinhas** do mês (domingo primeiro): gota cheia = bateu a
+  meta, pela metade = 50% ou mais, quase vazia = um pouco, vazia = nada. Hoje
+  tem contorno azul; dias futuros apagados. Setas trocam de mês (o mês antigo
+  é buscado no servidor). Tocar num dia abre ele.
+- Médias logo abaixo, com 7/30 dias; barras do gráfico em degradê da própria
+  cor da água, e a linha da meta explicada numa legenda embaixo (o rótulo em
+  cima das barras tapava a última).
+- **Tema escuro** azul-noite. Ajustes → Aparência: Automático (segue o
+  celular, padrão), Claro ou Escuro, guardado no aparelho. O `index.html`
+  aplica o tema antes de desenhar, para não piscar claro. No escuro o verde
+  e o azul ficam claros e o texto dos botões verdes fica escuro. Todas as
+  cores do escuro conferidas: textos a 5:1 ou mais, ícones de refeição a 6:1.
+- As cores que estavam fixas nos componentes (aviso, dica do gráfico, linha
+  do dia, barra de calorias, véu da gaveta) viraram variáveis do tema.
+
 ## Infraestrutura
 
 Igual ao `nossoap`: Worker + D1 + Access, plano gratuito, site embutido no

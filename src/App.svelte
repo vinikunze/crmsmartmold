@@ -89,9 +89,15 @@
       {:else}
         <h1 class="titulo">{titulo}</h1>
       {/if}
-      {#if pronto && rota.tela !== 'ajustes'}
-        <button class="botao so-computador" onclick={nova}><Plus size={18} /> Nova refeição</button>
-      {/if}
+      <div class="acoes-topo">
+        {#if pronto && rota.tela !== 'ajustes'}
+          <button class="botao so-computador" onclick={nova}><Plus size={18} /> Nova refeição</button>
+        {/if}
+        <!-- No celular, Ajustes mora aqui (como no app de finanças) e o + fica no meio da barra de baixo. -->
+        <a class="engrenagem so-celular" href="#ajustes" aria-label="Ajustes" aria-current={rota.tela === 'ajustes' ? 'page' : undefined}>
+          <Settings size={22} />
+        </a>
+      </div>
     </header>
 
     <main>
@@ -117,18 +123,18 @@
     </main>
   </div>
 
+  <!-- Hoje · + · Histórico: o + no meio não cobre nada da tela. -->
   <nav class="inferior" aria-label="Telas">
-    {#each TELAS as t (t.id)}
-      <a href="#{t.id}" aria-current={rota.tela === t.id ? 'page' : undefined}>
-        <t.icone size={22} />
-        <span>{t.nome}</span>
-      </a>
+    {#each TELAS.slice(0, 1) as t (t.id)}
+      <a href="#{t.id}" aria-current={rota.tela === t.id ? 'page' : undefined}><t.icone size={22} /><span>{t.nome}</span></a>
+    {/each}
+    <div class="centro">
+      <button class="mais" onclick={nova} disabled={!pronto} aria-label="Nova refeição"><Plus size={28} /></button>
+    </div>
+    {#each TELAS.slice(1, 2) as t (t.id)}
+      <a href="#{t.id}" aria-current={rota.tela === t.id ? 'page' : undefined}><t.icone size={22} /><span>{t.nome}</span></a>
     {/each}
   </nav>
-
-  {#if pronto && rota.tela !== 'ajustes'}
-    <button class="fab" onclick={nova} aria-label="Nova refeição"><Plus size={28} /></button>
-  {/if}
 </div>
 
 {#if estado.gaveta}
@@ -151,7 +157,7 @@
   .principal {
     max-width: 720px;
     margin: 0 auto;
-    padding: 0 var(--esp-4) calc(var(--barra-inferior) + 96px + env(safe-area-inset-bottom));
+    padding: 0 var(--esp-4) calc(var(--barra-inferior) + 48px + env(safe-area-inset-bottom));
   }
   .topo {
     position: sticky;
@@ -197,28 +203,32 @@
   }
   .inferior a[aria-current='page'] { color: var(--marca); font-weight: var(--fw-bold); }
 
-  .fab {
-    position: fixed;
-    z-index: 31;
-    right: var(--esp-4);
-    bottom: calc(var(--barra-inferior) + var(--esp-4) + env(safe-area-inset-bottom));
+  .centro { display: grid; place-items: center; }
+  .mais {
     display: grid;
     place-items: center;
-    width: 56px;
-    height: 56px;
-    border-radius: 16px;
-    border: 0;
+    width: 60px;
+    height: 60px;
+    margin-top: -26px;
+    border-radius: 50%;
+    border: 4px solid var(--fundo);
     background: var(--marca);
-    color: #ffffff;
-    box-shadow: 0 8px 24px rgb(23 38 31 / 0.3);
+    color: var(--sobre-marca);
+    box-shadow: 0 8px 20px rgb(0 0 0 / 0.28);
     transition: transform var(--mov);
   }
-  .fab:active { transform: scale(0.94); }
+  .mais:active { transform: scale(0.94); }
+  .mais:disabled { opacity: 0.6; }
+
+  .acoes-topo { display: flex; align-items: center; gap: var(--esp-2); }
+  .engrenagem { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; color: var(--texto-2); }
+  .engrenagem:hover { background: var(--superficie-2); }
+  .engrenagem[aria-current='page'] { background: var(--marca-suave); color: var(--marca); }
 
   .lateral { display: none; }
 
   @media (min-width: 1024px) {
-    .inferior, .fab { display: none !important; }
+    .inferior, .so-celular { display: none !important; }
     .so-computador { display: inline-flex !important; }
     .lateral {
       position: fixed;

@@ -1,8 +1,11 @@
 <script lang="ts">
-  // Últimos 7 ou 30 dias de uma pessoa: sequência batendo a água, médias,
-  // gráfico de água por dia com a linha da meta, e a lista dos dias (que é
-  // também a tabela do gráfico: tocar num dia abre ele).
-  import { Flame, ChevronRight, Check } from '@lucide/svelte';
+  // Histórico de uma pessoa: a sequência de dias batendo a água (com o
+  // recorde), o calendário de gotinhas do mês, as médias dos últimos 7 ou 30
+  // dias, o gráfico de água por dia e a lista dos dias (que é também a tabela
+  // do gráfico: tocar num dia abre ele).
+  import { Flame, ChevronRight, Check, Trophy } from '@lucide/svelte';
+  import Calendario from '../lib/Calendario.svelte';
+  import { recordeAgua } from '../../shared/calendario';
   import { estado } from '../lib/estado.svelte';
   import EscolhaPessoa from '../lib/EscolhaPessoa.svelte';
   import GraficoAgua from '../lib/GraficoAgua.svelte';
@@ -23,6 +26,8 @@
   // Para a sequência, olha mais para trás que o período mostrado.
   const longo = $derived(p ? historico(p, estado.horarios, estado.refeicoes, estado.agua, estado.de || de, hojeDia) : []);
   const sequencia = $derived(sequenciaAgua(longo, hojeDia));
+  const recorde = $derived(recordeAgua(longo));
+  const bateuHoje = $derived(longo.some((d) => d.dia === hojeDia && d.bateu_agua));
 
   // Médias só com os dias que já terminaram: hoje ainda está pela metade.
   const fechados = $derived(dias.filter((d) => d.dia < hojeDia));
@@ -35,30 +40,52 @@
 
 <EscolhaPessoa dia={hojeDia} />
 
-<div class="periodo" role="group" aria-label="Período">
-  <button class="chip" aria-pressed={periodo === 7} onclick={() => (periodo = 7)}>7 dias</button>
-  <button class="chip" aria-pressed={periodo === 30} onclick={() => (periodo = 30)}>30 dias</button>
-</div>
-
 {#if p}
-  <div class="numeros">
-    <div class="cartao numero destaque">
-      <span class="icone"><Flame size={20} /></span>
-      <p class="valor num">{sequencia} {sequencia === 1 ? 'dia' : 'dias'}</p>
-      <p class="legenda">seguidos batendo a água</p>
+  <section class="sequencia" aria-label="Sequência">
+    <span class="chama" class:acesa={sequencia > 0}><Flame size={36} strokeWidth={1.75} /></span>
+    <div class="seq-texto">
+      <p class="seq-numero num">{sequencia} {sequencia === 1 ? 'dia seguido' : 'dias seguidos'}</p>
+      <p class="seq-legenda">
+        {#if sequencia === 0}
+          batendo a meta de água. {bateuHoje ? '' : 'Bata hoje para começar!'}
+        {:else if !bateuHoje}
+          batendo a meta de água. Bata hoje para virar {sequencia + 1}!
+        {:else}
+          batendo a meta de água, contando hoje.
+        {/if}
+      </p>
     </div>
+    {#if recorde > 0}
+      <div class="recorde" title="Maior sequência">
+        <Trophy size={18} />
+        <span class="num"><strong>{recorde}</strong> {recorde === 1 ? 'dia' : 'dias'}</span>
+        <small>{recorde === sequencia ? 'seu recorde!' : 'recorde'}</small>
+      </div>
+    {/if}
+  </section>
+
+  <Calendario pessoa={p} />
+
+  <div class="cab-periodo">
+    <h2 class="secao">Médias</h2>
+    <div class="periodo" role="group" aria-label="Período">
+      <button class="chip" aria-pressed={periodo === 7} onclick={() => (periodo = 7)}>7 dias</button>
+      <button class="chip" aria-pressed={periodo === 30} onclick={() => (periodo = 30)}>30 dias</button>
+    </div>
+  </div>
+  <div class="numeros">
     <div class="cartao numero">
       <p class="valor num">{formatarMl(media)}</p>
-      <p class="legenda">de água por dia, em média</p>
+      <p class="legenda">por dia, em média</p>
     </div>
     <div class="cartao numero">
       <p class="valor num">{bateram} de {fechados.length}</p>
-      <p class="legenda">dias com a meta de água</p>
+      <p class="legenda">dias com a meta</p>
     </div>
     {#if pctPlano !== null}
       <div class="cartao numero">
         <p class="valor num">{pctPlano}%</p>
-        <p class="legenda">das refeições do plano registradas</p>
+        <p class="legenda">do plano registrado</p>
       </div>
     {/if}
   </div>
@@ -89,16 +116,35 @@
 {/if}
 
 <style>
-  .periodo { display: flex; gap: var(--esp-2); margin: var(--esp-4) 0; }
-  .numeros { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--esp-3); }
-  @media (min-width: 640px) { .numeros { grid-template-columns: repeat(4, 1fr); } }
+  .sequencia {
+    display: flex;
+    align-items: center;
+    gap: var(--esp-4);
+    margin: var(--esp-4) 0;
+    padding: var(--esp-4) var(--esp-5);
+    border-radius: 22px;
+    background: var(--alerta-suave);
+  }
+  .chama { flex: none; display: grid; place-items: center; width: 60px; height: 60px; border-radius: 18px; background: var(--superficie); color: var(--texto-3); box-shadow: var(--sombra); }
+  .chama.acesa { color: var(--alerta); }
+  .chama.acesa :global(svg) { fill: var(--alerta); fill-opacity: 0.18; animation: tremular 2.4s ease-in-out infinite; transform-origin: 50% 90%; }
+  .seq-texto { flex: 1; min-width: 0; }
+  .seq-numero { font-size: var(--fs-600); font-weight: var(--fw-bold); color: var(--alerta); line-height: 1.1; letter-spacing: -0.02em; }
+  .seq-legenda { font-size: var(--fs-300); color: var(--texto-2); }
+  .recorde { flex: none; display: grid; justify-items: center; color: var(--alerta); text-align: center; }
+  .recorde span { font-size: var(--fs-300); color: var(--texto); }
+  .recorde small { font-size: var(--fs-100); color: var(--texto-3); text-transform: uppercase; letter-spacing: 0.06em; font-weight: var(--fw-semi); }
+  @keyframes tremular { 0%, 100% { transform: scale(1) rotate(0); } 50% { transform: scale(1.06) rotate(-3deg); } }
+
+  .cab-periodo { display: flex; align-items: center; justify-content: space-between; gap: var(--esp-3); margin: var(--esp-6) 0 var(--esp-3); }
+  .cab-periodo .secao { margin: 0; }
+  .periodo { display: flex; gap: var(--esp-2); }
+  .numeros { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--esp-2); }
+  @media (max-width: 400px) { .numeros .valor { font-size: var(--fs-500); } }
+  @media (min-width: 640px) { .numeros { grid-template-columns: repeat(3, 1fr); } }
   .numero { display: grid; align-content: start; gap: 2px; }
-  .destaque { background: var(--agua-suave); border-color: transparent; }
-  .icone { color: var(--agua); margin-bottom: var(--esp-1); }
   .valor { font-size: var(--fs-600); font-weight: var(--fw-bold); }
-  .destaque .valor { color: var(--agua); }
   .legenda { font-size: var(--fs-200); color: var(--texto-3); }
-  .destaque .legenda { color: var(--texto-2); }
   .obs { font-size: var(--fs-100); color: var(--texto-3); margin-top: var(--esp-2); }
 
   .lista { list-style: none; margin: 0; padding: 0 var(--esp-3); }

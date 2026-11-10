@@ -72,7 +72,7 @@
   .fundo {
     position: fixed;
     inset: 0;
-    background: rgb(23 38 31 / 0.4);
+    background: var(--veu);
     z-index: 40;
     animation: aparecer var(--mov);
   }
