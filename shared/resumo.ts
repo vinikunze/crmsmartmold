@@ -184,3 +184,34 @@ export function sequenciaAgua(dias: ResumoDia[], hojeDia: string): number {
   }
   return n;
 }
+
+// ---------- sequência do casal ----------
+
+export interface SequenciaCasal {
+  /** Dias seguidos em que TODOS bateram a própria meta de água (mesma regra de hoje em andamento). */
+  dias: number;
+  /** Quem ainda não bateu a meta hoje (ids). Vazio = hoje já conta. */
+  faltam_hoje: number[];
+}
+
+export function sequenciaCasal(pessoas: Pessoa[], agua: Agua[], hojeDia: string): SequenciaCasal {
+  if (pessoas.length === 0) return { dias: 0, faltam_hoje: [] };
+  // ml por pessoa e dia
+  const total = new Map<string, number>();
+  for (const a of agua) {
+    const k = `${a.pessoa_id}|${a.dia}`;
+    total.set(k, (total.get(k) ?? 0) + a.ml);
+  }
+  const bateu = (p: Pessoa, dia: string) => (total.get(`${p.id}|${dia}`) ?? 0) >= p.meta_agua_ml;
+  const todos = (dia: string) => pessoas.every((p) => bateu(p, dia));
+
+  const faltam_hoje = pessoas.filter((p) => !bateu(p, hojeDia)).map((p) => p.id);
+  let d = faltam_hoje.length === 0 ? hojeDia : somarDias(hojeDia, -1);
+  let dias = 0;
+  // Para no primeiro dia sem os dois; 400 é só uma trava de segurança.
+  while (dias < 400 && todos(d)) {
+    dias++;
+    d = somarDias(d, -1);
+  }
+  return { dias, faltam_hoje };
+}

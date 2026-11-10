@@ -10,14 +10,14 @@
 </script>
 
 <div class="pessoas" role="group" aria-label="De quem">
-  {#each estado.pessoas as p, i (p.id)}
+  {#each estado.pessoas as p (p.id)}
     {@const tomado = dia ? aguaDoDia(estado.agua, p.id, dia) : 0}
     {@const pct = porcentagem(tomado, p.meta_agua_ml)}
     <button type="button" class="pessoa" class:com-agua={!!dia} aria-pressed={estado.pessoaId === p.id} onclick={() => estado.escolher(p.id)}>
       {#if dia}
-        <span class="mini" aria-hidden="true"><Garrafa pct={pct} pequena /></span>
+        <span class="mini" aria-hidden="true"><Garrafa pct={pct} tipo={p.recipiente} cor={p.cor} pequena /></span>
       {:else}
-        <span class="inicial cor-pessoa-{i % 2}" aria-hidden="true">{p.nome.slice(0, 1).toUpperCase()}</span>
+        <span class="inicial cor-{p.cor}" aria-hidden="true">{p.nome.slice(0, 1).toUpperCase()}</span>
       {/if}
       <span class="textos">
         <span class="nome">{p.nome}{#if p.id === estado.eu}{' '}<small>(você)</small>{/if}</span>
@@ -57,7 +57,8 @@
     width: 30px;
     height: 30px;
     border-radius: 50%;
-    color: #fff;
+    background: var(--p);
+    color: var(--p-sobre);
     font-size: var(--fs-300);
     font-weight: var(--fw-bold);
   }
@@ -66,5 +67,5 @@
   .nome small { font-weight: var(--fw-normal); color: var(--texto-3); }
   .agua { font-size: var(--fs-200); color: var(--agua); font-weight: var(--fw-semi); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .pct { flex: none; font-size: var(--fs-200); color: var(--texto-3); font-weight: var(--fw-semi); }
-  .pct.bateu { color: var(--agua); font-size: var(--fs-400); }
+  .pct.bateu { color: var(--ouro-texto); font-size: var(--fs-400); }
 </style>

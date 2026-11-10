@@ -10,7 +10,7 @@
   import Icone from '../lib/Icone.svelte';
   import { nomeDoDia, somarDias, dataLonga, diasEntre } from '../../shared/datas';
   import { nomeDaRefeicao } from '../../shared/tipos';
-  import { aguaDoDia, porcentagem, formatarMl, ritmoAgua, linhaDoTempo, kcalDoDia, type ItemLinha } from '../../shared/resumo';
+  import { aguaDoDia, porcentagem, formatarMl, ritmoAgua, linhaDoTempo, kcalDoDia, sequenciaCasal, type ItemLinha } from '../../shared/resumo';
   import { saudacao, fraseDoMomento } from '../../shared/momento';
 
   let { dia }: { dia: string } = $props();
@@ -42,6 +42,9 @@
   const mostrarKcal = $derived(!!p && (p.meta_kcal !== null || kcal.registradas > 0));
   const feitas = $derived(linha.filter((l) => l.previsto && l.estado === 'feita').length);
   const doPlano = $derived(linha.filter((l) => l.previsto).length);
+
+  // Sequência do casal: dias seguidos em que os dois bateram a meta.
+  const casal = $derived(sequenciaCasal(estado.pessoas, estado.agua, estado.relogio.dia));
 
   const ola = $derived(saudacao(estado.relogio.hora));
   const emoji = $derived(ola === 'Bom dia' ? '☀️' : ola === 'Boa tarde' ? '🌤️' : '🌙');
@@ -106,11 +109,17 @@
     <h2>{ola}{eu ? `, ${eu.nome}` : ''}! <span aria-hidden="true">{emoji}</span></h2>
     <p>{frase}</p>
   </div>
-  <div class="avatares" aria-hidden="true">
-    {#each estado.pessoas as x, i (x.id)}
-      <span class="avatar cor-pessoa-{i % 2}">{x.nome.slice(0, 1).toUpperCase()}</span>
-    {/each}
-  </div>
+  <a class="casal" class:juntos={casal.faltam_hoje.length === 0} href="#historico"
+    aria-label="Sequência do casal: {casal.dias} {casal.dias === 1 ? 'dia' : 'dias'} seguidos com os dois batendo a meta de água">
+    <span class="avatares" aria-hidden="true">
+      {#each estado.pessoas as x (x.id)}
+        <span class="avatar cor-{x.cor}">{x.nome.slice(0, 1).toUpperCase()}</span>
+      {/each}
+    </span>
+    {#if casal.dias > 0}
+      <span class="juntos-dias num" aria-hidden="true"><Flame size={12} /> {casal.dias} {casal.dias === 1 ? 'dia' : 'dias'}</span>
+    {/if}
+  </a>
 </header>
 
 <nav class="dias" aria-label="Escolher o dia">
@@ -137,7 +146,7 @@
   <section class="heroi" aria-labelledby="titulo-agua">
     <div class="topo-heroi">
       <button class="garrafa" onclick={() => estado.beber(p.id, dia, p.copo_ml)} aria-label="Tomar um copo de {formatarMl(p.copo_ml)}">
-        <Garrafa {pct} {respingo} />
+        <Garrafa {pct} {respingo} tipo={p.recipiente} cor={p.cor} />
         {#if festa}
           <span class="festa" aria-hidden="true">
             {#each GOTAS as g, i (i)}
@@ -149,7 +158,7 @@
 
       <div class="info">
         <p class="rotulo" id="titulo-agua"><GlassWater size={16} /> Água {ehHoje ? 'hoje' : 'no dia'}</p>
-        <p class="grande num">{formatarMl(tomado)}</p>
+        <p class="grande num" class:ouro={pct >= 100}>{formatarMl(tomado)}</p>
         <p class="de num">de {formatarMl(p.meta_agua_ml)} · {pct}%</p>
         {#if festa}
           <p class="parabens" role="status">Meta batida! 🎉</p>
@@ -255,7 +264,10 @@
   .ola-texto { min-width: 0; }
   .ola h2 { font-size: var(--fs-600); font-weight: var(--fw-bold); letter-spacing: -0.02em; line-height: 1.2; }
   .ola p { margin-top: 2px; font-size: var(--fs-300); color: var(--texto-2); }
-  .avatares { display: flex; flex: none; }
+  .casal { flex: none; display: grid; justify-items: center; gap: 2px; text-decoration: none; }
+  .avatares { display: flex; padding: 2px; border-radius: 999px; border: 2px solid transparent; transition: border-color var(--mov); }
+  /* Os dois bateram a meta hoje: aro dourado em volta das iniciais. */
+  .juntos .avatares { border-color: var(--ouro); }
   .avatar {
     display: grid;
     place-items: center;
@@ -263,10 +275,22 @@
     height: 40px;
     border-radius: 50%;
     border: 3px solid var(--fundo);
-    color: #fff;
+    background: var(--p);
+    color: var(--p-sobre);
     font-weight: var(--fw-bold);
   }
   .avatar + .avatar { margin-left: -12px; }
+  .juntos-dias {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: var(--ouro-suave);
+    color: var(--ouro-texto);
+    font-size: var(--fs-100);
+    font-weight: var(--fw-semi);
+  }
 
   /* ---------- dia ---------- */
   .dias {
@@ -314,6 +338,7 @@
   .info { display: grid; gap: 2px; min-width: 0; }
   .rotulo { display: flex; align-items: center; gap: 6px; font-size: var(--fs-100); font-weight: var(--fw-semi); letter-spacing: 0.06em; text-transform: uppercase; color: rgb(255 255 255 / 0.88); }
   .grande { font-size: 2.75rem; font-weight: var(--fw-bold); color: var(--agua-clara); line-height: 1.05; letter-spacing: -0.03em; margin-top: var(--esp-1); }
+  .grande.ouro { color: var(--ouro-claro); }
   .de { font-size: var(--fs-400); font-weight: var(--fw-medium); color: rgb(255 255 255 / 0.9); margin-bottom: var(--esp-2); }
   .nota { font-size: var(--fs-200); color: rgb(255 255 255 / 0.88); }
   .nota.forte, .parabens { font-weight: var(--fw-semi); color: #fff; }
@@ -354,7 +379,7 @@
     animation: gota 1200ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
   }
   .festa i:nth-child(3n) { background: #ffffff; }
-  .festa i:nth-child(4n) { background: var(--sol); }
+  .festa i:nth-child(2n) { background: var(--ouro-claro); }
 
   @keyframes gota {
     0% { opacity: 1; transform: rotate(var(--angulo)) translateY(0) scale(0.4); }

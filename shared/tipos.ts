@@ -19,6 +19,24 @@ export const TIPOS_REFEICAO = REFEICOES.map((r) => r.tipo);
 
 export const nomeDaRefeicao = (t: TipoRefeicao) => REFEICOES.find((r) => r.tipo === t)?.nome ?? 'Refeição';
 
+export type Recipiente = 'garrafa' | 'squeeze' | 'copo' | 'garrafao';
+export const RECIPIENTES: { tipo: Recipiente; nome: string }[] = [
+  { tipo: 'garrafa', nome: 'Garrafa' },
+  { tipo: 'squeeze', nome: 'Squeeze' },
+  { tipo: 'copo', nome: 'Copo térmico' },
+  { tipo: 'garrafao', nome: 'Garrafão' },
+];
+
+export type Cor = 'azul' | 'rosa' | 'verde' | 'roxo' | 'laranja' | 'grafite';
+export const CORES: { cor: Cor; nome: string }[] = [
+  { cor: 'azul', nome: 'Azul' },
+  { cor: 'rosa', nome: 'Rosa' },
+  { cor: 'verde', nome: 'Verde' },
+  { cor: 'roxo', nome: 'Roxo' },
+  { cor: 'laranja', nome: 'Laranja' },
+  { cor: 'grafite', nome: 'Grafite' },
+];
+
 export interface Pessoa {
   id: number;
   email: string;
@@ -32,6 +50,10 @@ export interface Pessoa {
   meta_kcal: number | null;
   /** Peso em gramas, só para sugerir a meta de água. null = não informou. */
   peso_g: number | null;
+  /** Formato da garrafa desenhada nas telas. */
+  recipiente: Recipiente;
+  /** Cor da pessoa: detalhes da garrafa e as iniciais. */
+  cor: Cor;
 }
 
 /** Horário planejado de uma refeição. Refeição sem horário = não faz parte do plano. */

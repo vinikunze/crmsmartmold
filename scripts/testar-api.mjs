@@ -99,6 +99,13 @@ conferir('tira meta de calorias sem mexer no resto', semKcal.dados?.meta_kcal ==
 const metaRuim = await pedir('PATCH', `pessoas/${sophia.id}`, { meta_agua_ml: 100 });
 conferir('recusa meta de água absurda (400)', metaRuim.status === 400, metaRuim);
 
+const garrafa = await pedir('PATCH', `pessoas/${sophia.id}`, { recipiente: 'copo', cor: 'roxo' });
+conferir('escolhe a garrafa e a cor', garrafa.dados?.recipiente === 'copo' && garrafa.dados.cor === 'roxo' && garrafa.dados.meta_agua_ml === 2500, garrafa);
+conferir('padrões: Vini garrafa azul, Sophia começa rosa', vini.recipiente === 'garrafa' && vini.cor === 'azul' && sophia.cor === 'rosa', [vini, sophia]);
+const garrafaRuim = await pedir('PATCH', `pessoas/${sophia.id}`, { recipiente: 'balde' });
+const corRuim = await pedir('PATCH', `pessoas/${sophia.id}`, { cor: '#ff0000' });
+conferir('recusa garrafa e cor inventadas (400)', garrafaRuim.status === 400 && corRuim.status === 400, [garrafaRuim, corRuim]);
+
 const novoPlano = await pedir('PUT', `pessoas/${sophia.id}/horarios`, { horarios: [{ tipo: 'cafe', hora: '08:00' }, { tipo: 'ceia', hora: '22:30' }] });
 conferir('troca o plano inteiro', novoPlano.status === 200 && novoPlano.dados.length === 2 && novoPlano.dados[1].tipo === 'ceia', novoPlano);
 const repetida = await pedir('PUT', `pessoas/${sophia.id}/horarios`, { horarios: [{ tipo: 'cafe', hora: '08:00' }, { tipo: 'cafe', hora: '09:00' }] });

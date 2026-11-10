@@ -25,7 +25,7 @@ de tudo.
 | `src/` | Telas (Svelte 5): Hoje, Histórico, Ajustes e as gavetas de refeição e água |
 | `migrations/` | Estrutura do banco |
 | `tests/` | Testes da lógica (`npm test`) |
-| `scripts/testar-api.mjs` | 36 verificações da API contra o servidor local |
+| `scripts/testar-api.mjs` | 39 verificações da API contra o servidor local |
 | `scripts/embutir.mjs` | Embute o site dentro do Worker no `npm run build` (mesmo do `nossoap`) |
 
 ## Rodar no computador
@@ -45,7 +45,7 @@ no computador.
 ## Publicar
 
 Banco D1 `em-dia` (`5c6d87af-a9f0-48cc-ade5-435062042c9f`, região ENAM) **já
-criado**, com a migração `0001` aplicada e registrada em `d1_migrations`.
+criado**, com as migrações `0001` e `0002` aplicadas e registradas em `d1_migrations`.
 Endereço: **https://emdia.vinihkunze.workers.dev** (Worker `emdia`, com o
 mesmo nome do repositório `vinikunze/emdia`).
 

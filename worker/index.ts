@@ -6,7 +6,7 @@
 // lançou fica gravado em `criado_por`, mas não aparece na tela.
 
 import { diaValido, horaValida, hoje, somarDias, diasEntre } from '../shared/datas';
-import { TIPOS_REFEICAO, type TipoRefeicao } from '../shared/tipos';
+import { TIPOS_REFEICAO, RECIPIENTES, CORES, type TipoRefeicao } from '../shared/tipos';
 
 interface Env {
   DB: D1Database;
@@ -17,7 +17,7 @@ interface AccessCtx {
   access?: { aud: string; getIdentity(): Promise<{ email?: string } | undefined> };
 }
 
-const CAMPOS_PESSOA = 'id, email, nome, meta_agua_ml, copo_ml, garrafa_ml, meta_kcal, peso_g';
+const CAMPOS_PESSOA = 'id, email, nome, meta_agua_ml, copo_ml, garrafa_ml, meta_kcal, peso_g, recipiente, cor';
 const CAMPOS_REFEICAO = 'id, pessoa_id, dia, hora, tipo, descricao, kcal, obs, criado_em';
 const CAMPOS_AGUA = 'id, pessoa_id, dia, hora, ml, criado_em';
 
@@ -98,6 +98,12 @@ function hora(v: unknown): string {
 function tipo(v: unknown): TipoRefeicao {
   if (!TIPOS_REFEICAO.includes(v as TipoRefeicao)) throw new Erro(400, 'Escolha a refeição.');
   return v as TipoRefeicao;
+}
+
+/** Um dos valores de uma lista fechada (formato da garrafa, cor). */
+function umDe<T extends string>(v: unknown, validos: T[], mensagem: string): T {
+  if (!validos.includes(v as T)) throw new Erro(400, mensagem);
+  return v as T;
 }
 
 function id(v: string | undefined): number {
@@ -201,7 +207,8 @@ async function editarPessoa(env: Env, req: Request, pessoaId: number): Promise<R
   // Só muda o que veio; o resto continua como estava.
   const v = <T>(campo: string, ler: (x: unknown) => T): T => (b[campo] === undefined ? (atual[campo] as T) : ler(b[campo]));
   const p = await env.DB.prepare(
-    `UPDATE pessoas SET nome = ?, meta_agua_ml = ?, copo_ml = ?, garrafa_ml = ?, meta_kcal = ?, peso_g = ?
+    `UPDATE pessoas SET nome = ?, meta_agua_ml = ?, copo_ml = ?, garrafa_ml = ?, meta_kcal = ?, peso_g = ?,
+       recipiente = ?, cor = ?
      WHERE id = ? RETURNING ${CAMPOS_PESSOA}`,
   ).bind(
     v('nome', (x) => texto(x, 'o nome', 30)),
@@ -210,6 +217,8 @@ async function editarPessoa(env: Env, req: Request, pessoaId: number): Promise<R
     v('garrafa_ml', (x) => inteiro(x, 50, 2000, 'A garrafa vai de 50 ml a 2 L.')),
     v('meta_kcal', (x) => inteiroOpcional(x, 800, 6000, 'A meta de calorias vai de 800 a 6000.')),
     v('peso_g', (x) => inteiroOpcional(x, 30000, 300000, 'Peso entre 30 e 300 kg.')),
+    v('recipiente', (x) => umDe(x, RECIPIENTES.map((r) => r.tipo), 'Formato de garrafa inválido.')),
+    v('cor', (x) => umDe(x, CORES.map((c) => c.cor), 'Cor inválida.')),
     pessoaId,
   ).first();
   return json(p);

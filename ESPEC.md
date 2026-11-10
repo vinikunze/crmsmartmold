@@ -123,6 +123,31 @@ Para ter a mesma cara caprichada dos outros dois apps (a maquete 3D do
 - As cores que estavam fixas nos componentes (aviso, dica do gráfico, linha
   do dia, barra de calorias, véu da gaveta) viraram variáveis do tema.
 
+### Terceira rodada: a cara do casal (10/11/2026)
+
+A partir do que o Vini pediu nos outros apps (dourado como marca, objetos
+desenhados como os de verdade, tudo como "nós", telas enxutas):
+
+- **Dourado é a cor de conquista**, e só disso: meta batida (tampa da
+  garrafa dourada com brilhos, número grande dourado, gota dourada no
+  calendário, ✓ dourado no botão da pessoa), sequências e troféu, e o ponto
+  do logo. Verde continua sendo ação, azul água, laranja só "passou do
+  horário". Mesmos tons de dourado do `nossoap`.
+- **Tema escuro virou azul-marinho com dourado**, como o `nossoap`.
+- **Cada um escolhe a sua garrafa** (Ajustes → "A garrafa de…"): formato
+  (garrafa, squeeze, copo térmico, garrafão) e cor (azul, rosa, verde, roxo,
+  laranja, grafite). A cor pinta a tampa e os detalhes da garrafa e a inicial
+  da pessoa. Padrão: Vini garrafa azul, Sophia rosa. Migração
+  `0002_garrafa.sql` (`pessoas.recipiente`, `pessoas.cor`). Um pode mudar a
+  do outro, como o resto dos ajustes.
+- **Sequência do casal**: dias seguidos em que **os dois** bateram a própria
+  meta de água, com a mesma regra da individual (hoje em andamento não
+  zera). Aparece como etiqueta dourada embaixo das iniciais na tela Hoje
+  (toque leva ao Histórico; aro dourado nas iniciais quando os dois já
+  bateram hoje) e num cartão no Histórico, que diz quem falta hoje.
+
+Ainda na fila: "Como foi a semana", medalhas, foto no lugar das iniciais.
+
 ## Infraestrutura
 
 Igual ao `nossoap`: Worker + D1 + Access, plano gratuito, site embutido no

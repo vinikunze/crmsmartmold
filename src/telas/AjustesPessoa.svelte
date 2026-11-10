@@ -2,8 +2,9 @@
   // Metas e plano de horários de uma pessoa. Recriado ao trocar de pessoa.
   import { untrack } from 'svelte';
   import { Minus, Plus, Sparkles } from '@lucide/svelte';
-  import type { Pessoa, TipoRefeicao } from '../../shared/tipos';
-  import { REFEICOES } from '../../shared/tipos';
+  import type { Pessoa, TipoRefeicao, Recipiente, Cor } from '../../shared/tipos';
+  import { REFEICOES, RECIPIENTES, CORES } from '../../shared/tipos';
+  import Garrafa from '../lib/Garrafa.svelte';
   import { horaValida } from '../../shared/datas';
   import { formatarMl, sugerirMeta } from '../../shared/resumo';
   import { estado } from '../lib/estado.svelte';
@@ -14,6 +15,8 @@
   const p = untrack(() => pessoa);
 
   let nome = $state(p.nome);
+  let recipiente = $state<Recipiente>(p.recipiente);
+  let cor = $state<Cor>(p.cor);
   let meta = $state(p.meta_agua_ml);
   let copo = $state(p.copo_ml);
   let garrafa = $state(p.garrafa_ml);
@@ -53,7 +56,7 @@
     salvando = true;
     try {
       const nova = await api.editarPessoa(p.id, {
-        nome: nome.trim(), meta_agua_ml: meta, copo_ml: copo, garrafa_ml: garrafa,
+        nome: nome.trim(), recipiente, cor, meta_agua_ml: meta, copo_ml: copo, garrafa_ml: garrafa,
         meta_kcal: controlaKcal ? metaKcal : null, peso_g: pesoG,
       });
       const salvos = await api.salvarHorarios(p.id, horarios);
@@ -85,6 +88,30 @@
       <span>Nome</span>
       <input class="entrada" bind:value={nome} maxlength="30" />
     </label>
+  </section>
+
+  <h2 class="secao">A garrafa de {nome.trim() || p.nome}</h2>
+  <section class="cartao bloco">
+    <fieldset>
+      <legend>Formato</legend>
+      <div class="formatos">
+        {#each RECIPIENTES as r (r.tipo)}
+          <button type="button" class="formato" aria-pressed={recipiente === r.tipo} onclick={() => (recipiente = r.tipo)}>
+            <span class="desenho"><Garrafa pct={62} tipo={r.tipo} {cor} pequena /></span>
+            <span>{r.nome}</span>
+          </button>
+        {/each}
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend>Cor</legend>
+      <div class="cores">
+        {#each CORES as c (c.cor)}
+          <button type="button" class="cor cor-{c.cor}" aria-pressed={cor === c.cor} aria-label={c.nome} title={c.nome} onclick={() => (cor = c.cor)}></button>
+        {/each}
+      </div>
+    </fieldset>
+    <p class="obs">A cor também pinta a inicial de {nome.trim() || p.nome} nas telas. Quando a meta do dia é batida, a tampa fica dourada.</p>
   </section>
 
   <h2 class="secao">Água</h2>
@@ -171,6 +198,27 @@
   .icone-refeicao.apagado { background: var(--superficie-2); color: var(--texto-3); }
   .hora { width: 8.5em; flex: none; }
   .hora:disabled { opacity: 0.45; }
+
+  .formatos { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--esp-2); }
+  .formato {
+    display: grid;
+    justify-items: center;
+    gap: var(--esp-1);
+    padding: var(--esp-3) var(--esp-1) var(--esp-2);
+    border-radius: var(--r-2);
+    border: 1px solid var(--borda);
+    background: var(--superficie);
+    color: var(--texto-2);
+    font-size: var(--fs-100);
+    font-weight: var(--fw-medium);
+    line-height: 1.2;
+    transition: border-color var(--mov), background var(--mov);
+  }
+  .formato[aria-pressed='true'] { border-color: var(--marca); background: var(--marca-suave); color: var(--texto); font-weight: var(--fw-semi); box-shadow: 0 0 0 1px var(--marca); }
+  .desenho { width: 34px; height: 60px; }
+  .cores { display: flex; flex-wrap: wrap; gap: var(--esp-3); }
+  .cor { width: 44px; height: 44px; border-radius: 50%; border: 3px solid var(--superficie); background: var(--p); box-shadow: 0 0 0 1px var(--borda); transition: box-shadow var(--mov); }
+  .cor[aria-pressed='true'] { box-shadow: 0 0 0 3px var(--texto); }
 
   .salvar { margin-top: var(--esp-5); }
 </style>

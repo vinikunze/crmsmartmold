@@ -1,6 +1,6 @@
 <script lang="ts">
-  // Calendário do mês com uma gota por dia: cheia quando bateu a meta de
-  // água, pela metade, com um pouco, ou vazia. Tocar num dia abre ele.
+  // Calendário do mês com uma gota por dia: dourada e cheia quando bateu a
+  // meta de água; azul pela metade ou com um pouco; vazia. Tocar abre o dia.
   import { ChevronLeft, ChevronRight } from '@lucide/svelte';
   import type { Pessoa } from '../../shared/tipos';
   import { estado } from './estado.svelte';
@@ -121,6 +121,9 @@
   .agua { fill: var(--agua-barra); }
   .contorno { fill: none; stroke: var(--agua-barra); stroke-width: 1.6; }
   .vazia .contorno, .futuro .contorno { stroke: var(--borda); }
+  /* Meta batida: gota dourada (com contorno mais escuro, para aparecer no branco). */
+  .cheia .agua { fill: var(--ouro); }
+  .cheia .contorno { stroke: var(--ouro-contorno); }
 
   .legenda { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--esp-2) var(--esp-4); font-size: var(--fs-100); color: var(--texto-3); }
   .legenda .item { display: inline-flex; align-items: center; gap: 4px; }

@@ -10,7 +10,7 @@
   import EscolhaPessoa from '../lib/EscolhaPessoa.svelte';
   import GraficoAgua from '../lib/GraficoAgua.svelte';
   import { somarDias, nomeDoDia } from '../../shared/datas';
-  import { historico, sequenciaAgua, formatarMl } from '../../shared/resumo';
+  import { historico, sequenciaAgua, sequenciaCasal, formatarMl } from '../../shared/resumo';
 
   let periodo = $state<7 | 30>(7);
 
@@ -27,6 +27,15 @@
   const longo = $derived(p ? historico(p, estado.horarios, estado.refeicoes, estado.agua, estado.de || de, hojeDia) : []);
   const sequencia = $derived(sequenciaAgua(longo, hojeDia));
   const recorde = $derived(recordeAgua(longo));
+  // Sequência "nós": dias em que os dois bateram a meta.
+  const casal = $derived(sequenciaCasal(estado.pessoas, estado.agua, hojeDia));
+  const quemFalta = $derived(
+    casal.faltam_hoje.length === 0
+      ? 'Hoje os dois já bateram a meta.'
+      : casal.faltam_hoje.length === estado.pessoas.length
+        ? 'Hoje ainda faltam os dois.'
+        : `Hoje falta ${casal.faltam_hoje.map((id) => (id === estado.eu ? 'você' : estado.nomeDe(id))).join(' e ')}.`,
+  );
   const bateuHoje = $derived(longo.some((d) => d.dia === hojeDia && d.bateu_agua));
 
   // Médias só com os dias que já terminaram: hoje ainda está pela metade.
@@ -47,11 +56,11 @@
       <p class="seq-numero num">{sequencia} {sequencia === 1 ? 'dia seguido' : 'dias seguidos'}</p>
       <p class="seq-legenda">
         {#if sequencia === 0}
-          batendo a meta de água. {bateuHoje ? '' : 'Bata hoje para começar!'}
+          batendo a meta. {bateuHoje ? '' : 'Bata hoje para começar!'}
         {:else if !bateuHoje}
-          batendo a meta de água. Bata hoje para virar {sequencia + 1}!
+          batendo a meta. Bata hoje para virar {sequencia + 1}!
         {:else}
-          batendo a meta de água, contando hoje.
+          batendo a meta, contando hoje.
         {/if}
       </p>
     </div>
@@ -63,6 +72,20 @@
       </div>
     {/if}
   </section>
+
+  {#if estado.pessoas.length > 1}
+    <section class="cartao nos" aria-label="Sequência do casal">
+      <span class="avatares" class:juntos={casal.faltam_hoje.length === 0} aria-hidden="true">
+        {#each estado.pessoas as x (x.id)}
+          <span class="avatar cor-{x.cor}">{x.nome.slice(0, 1).toUpperCase()}</span>
+        {/each}
+      </span>
+      <div class="nos-texto">
+        <p class="nos-titulo"><strong class="num">{casal.dias} {casal.dias === 1 ? 'dia' : 'dias'}</strong> juntos</p>
+        <p class="nos-legenda">com os dois batendo a meta. {quemFalta}</p>
+      </div>
+    </section>
+  {/if}
 
   <Calendario pessoa={p} />
 
@@ -120,20 +143,29 @@
     display: flex;
     align-items: center;
     gap: var(--esp-4);
-    margin: var(--esp-4) 0;
+    margin: var(--esp-4) 0 var(--esp-3);
     padding: var(--esp-4) var(--esp-5);
     border-radius: 22px;
-    background: var(--alerta-suave);
+    background: var(--ouro-suave);
   }
   .chama { flex: none; display: grid; place-items: center; width: 60px; height: 60px; border-radius: 18px; background: var(--superficie); color: var(--texto-3); box-shadow: var(--sombra); }
-  .chama.acesa { color: var(--alerta); }
-  .chama.acesa :global(svg) { fill: var(--alerta); fill-opacity: 0.18; animation: tremular 2.4s ease-in-out infinite; transform-origin: 50% 90%; }
+  .chama.acesa { color: var(--ouro-contorno); }
+  .chama.acesa :global(svg) { fill: var(--ouro); fill-opacity: 0.45; animation: tremular 2.4s ease-in-out infinite; transform-origin: 50% 90%; }
   .seq-texto { flex: 1; min-width: 0; }
-  .seq-numero { font-size: var(--fs-600); font-weight: var(--fw-bold); color: var(--alerta); line-height: 1.1; letter-spacing: -0.02em; }
+  .seq-numero { font-size: var(--fs-600); font-weight: var(--fw-bold); color: var(--ouro-texto); line-height: 1.1; letter-spacing: -0.02em; }
   .seq-legenda { font-size: var(--fs-300); color: var(--texto-2); }
-  .recorde { flex: none; display: grid; justify-items: center; color: var(--alerta); text-align: center; }
+  .recorde { flex: none; display: grid; justify-items: center; color: var(--ouro-texto); text-align: center; }
   .recorde span { font-size: var(--fs-300); color: var(--texto); }
   .recorde small { font-size: var(--fs-100); color: var(--texto-3); text-transform: uppercase; letter-spacing: 0.06em; font-weight: var(--fw-semi); }
+  .nos { display: flex; align-items: center; gap: var(--esp-3); margin-bottom: var(--esp-4); }
+  .avatares { flex: none; display: flex; padding: 2px; border-radius: 999px; border: 2px solid transparent; }
+  .avatares.juntos { border-color: var(--ouro); }
+  .avatar { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; border: 3px solid var(--superficie); background: var(--p); color: var(--p-sobre); font-weight: var(--fw-bold); }
+  .avatar + .avatar { margin-left: -12px; }
+  .nos-texto { min-width: 0; }
+  .nos-titulo { font-size: var(--fs-400); }
+  .nos-titulo strong { font-size: var(--fs-500); color: var(--ouro-texto); }
+  .nos-legenda { font-size: var(--fs-200); color: var(--texto-3); }
   @keyframes tremular { 0%, 100% { transform: scale(1) rotate(0); } 50% { transform: scale(1.06) rotate(-3deg); } }
 
   .cab-periodo { display: flex; align-items: center; justify-content: space-between; gap: var(--esp-3); margin: var(--esp-6) 0 var(--esp-3); }

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { hoje, horaAgora, diaValido, horaValida, somarDias, diasEntre, nomeDoDia, minutos } from '../shared/datas';
 import {
-  formatarMl as formatarMlReal, aguaDoDia, porcentagem, ritmoAgua, sugerirMeta, linhaDoTempo, kcalDoDia, historico, sequenciaAgua,
+  formatarMl as formatarMlReal, sequenciaCasal, aguaDoDia, porcentagem, ritmoAgua, sugerirMeta, linhaDoTempo, kcalDoDia, historico, sequenciaAgua,
 } from '../shared/resumo';
 import { tipoPelaHora, maisComidos } from '../shared/sugestoes';
 import { normalizar } from '../shared/texto';
@@ -17,7 +17,10 @@ const refeicao = (p: Partial<Refeicao> = {}): Refeicao => ({
 const agua = (p: Partial<Agua> = {}): Agua => ({
   id: ++n, pessoa_id: 1, dia: '2026-11-09', hora: '10:00', ml: 250, criado_em: '2026-11-09T13:00:00Z', ...p,
 });
-const vini: Pessoa = { id: 1, email: 'v@x.com', nome: 'Vini', meta_agua_ml: 2000, copo_ml: 250, garrafa_ml: 500, meta_kcal: null, peso_g: null };
+const vini: Pessoa = {
+  id: 1, email: 'v@x.com', nome: 'Vini', meta_agua_ml: 2000, copo_ml: 250, garrafa_ml: 500, meta_kcal: null, peso_g: null,
+  recipiente: 'garrafa', cor: 'azul',
+};
 const plano: Horario[] = [
   { pessoa_id: 1, tipo: 'cafe', hora: '07:30' },
   { pessoa_id: 1, tipo: 'almoco', hora: '12:00' },
@@ -247,5 +250,29 @@ describe('calendário de gotinhas', () => {
       bateu.map((b, i) => ({ dia: somarDias('2026-11-01', i), agua_ml: 0, bateu_agua: b, refeicoes: 0, do_plano: 0, plano: 0, kcal: null }));
     expect(recordeAgua(dias([true, true, false, true, true, true, false, true]))).toBe(3);
     expect(recordeAgua(dias([false, false]))).toBe(0);
+  });
+});
+
+describe('sequência do casal', () => {
+  const sophia: Pessoa = { ...vini, id: 2, nome: 'Sophia', meta_agua_ml: 1500 };
+  const cheio = (pessoa_id: number, dia: string, ml: number) => agua({ pessoa_id, dia, ml });
+
+  it('conta só os dias em que os dois bateram a própria meta', () => {
+    const regs = [
+      cheio(1, '2026-11-06', 2000), cheio(2, '2026-11-06', 1500),
+      cheio(1, '2026-11-07', 2000), cheio(2, '2026-11-07', 1400), // Sophia não bateu
+      cheio(1, '2026-11-08', 2000), cheio(2, '2026-11-08', 1500),
+      cheio(1, '2026-11-09', 2000), cheio(2, '2026-11-09', 1600),
+    ];
+    expect(sequenciaCasal([vini, sophia], regs, '2026-11-09')).toEqual({ dias: 2, faltam_hoje: [] });
+  });
+
+  it('hoje em andamento não zera, e diz quem falta', () => {
+    const regs = [
+      cheio(1, '2026-11-08', 2000), cheio(2, '2026-11-08', 1500),
+      cheio(1, '2026-11-09', 2000), cheio(2, '2026-11-09', 500),
+    ];
+    expect(sequenciaCasal([vini, sophia], regs, '2026-11-09')).toEqual({ dias: 1, faltam_hoje: [2] });
+    expect(sequenciaCasal([vini, sophia], [], '2026-11-09')).toEqual({ dias: 0, faltam_hoje: [1, 2] });
   });
 });
