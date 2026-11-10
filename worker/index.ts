@@ -6,7 +6,8 @@
 // lançou fica gravado em `criado_por`, mas não aparece na tela.
 
 import { diaValido, horaValida, hoje, somarDias, diasEntre } from '../shared/datas';
-import { TIPOS_REFEICAO, RECIPIENTES, CORES, type TipoRefeicao } from '../shared/tipos';
+import { TIPOS_REFEICAO, RECIPIENTES, CORES, type TipoRefeicao, type Pessoa, type Horario } from '../shared/tipos';
+import { calendarioDeLembretes, lembretesDe, INTERVALOS_AGUA } from '../shared/lembretes';
 
 interface Env {
   DB: D1Database;
@@ -247,6 +248,29 @@ async function salvarHorarios(env: Env, req: Request, pessoaId: number): Promise
   return json(results);
 }
 
+// ---------- lembretes no calendário ----------
+
+/**
+ * Arquivo .ics com os lembretes da pessoa (refeições do plano salvo e água).
+ * `inline`: no iPhone abre direto a tela "Adicionar ao calendário".
+ */
+async function lembretesIcs(env: Env, url: URL, pessoaId: number): Promise<Response> {
+  const p = await env.DB.prepare(`SELECT ${CAMPOS_PESSOA} FROM pessoas WHERE id = ?`).bind(pessoaId).first<Pessoa>();
+  if (!p) throw new Erro(404, 'Pessoa não encontrada.');
+  const agua = Number(url.searchParams.get('agua') ?? 0);
+  if (!(INTERVALOS_AGUA as readonly number[]).includes(agua)) throw new Erro(400, 'Intervalo de água inválido.');
+  const opcoes = { refeicoes: url.searchParams.get('refeicoes') !== '0', agua, link: url.origin };
+  const { results: plano } = await env.DB.prepare('SELECT pessoa_id, tipo, hora FROM horarios WHERE pessoa_id = ?').bind(pessoaId).all<Horario>();
+  if (lembretesDe(p, plano, opcoes).length === 0) throw new Erro(400, 'Escolha ao menos um lembrete.');
+  return new Response(calendarioDeLembretes(p, plano, opcoes), {
+    headers: {
+      'content-type': 'text/calendar; charset=utf-8',
+      'content-disposition': 'inline; filename="lembretes-em-dia.ics"',
+      'cache-control': 'no-store',
+    },
+  });
+}
+
 // ---------- rotas ----------
 
 async function api(req: Request, env: Env, ctx: AccessCtx): Promise<Response> {
@@ -288,6 +312,7 @@ async function api(req: Request, env: Env, ctx: AccessCtx): Promise<Response> {
   if (recurso === 'pessoas' && param) {
     if (!acao && m === 'PATCH') return editarPessoa(env, req, id(param));
     if (acao === 'horarios' && m === 'PUT') return salvarHorarios(env, req, id(param));
+    if (acao === 'lembretes.ics' && m === 'GET') return lembretesIcs(env, url, id(param));
   }
 
   throw new Erro(404, 'Rota não encontrada.');

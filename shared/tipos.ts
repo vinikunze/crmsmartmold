@@ -17,6 +17,13 @@ export const REFEICOES: { tipo: TipoRefeicao; nome: string; icone: string; hora:
 
 export const TIPOS_REFEICAO = REFEICOES.map((r) => r.tipo);
 
+/**
+ * Texto de uma refeição só marcada, sem dizer o que comeu ("Só marcar").
+ * A descrição é obrigatória no banco; este texto fixo deixa a tela saber que
+ * é para mostrar apagado e não sugerir em "Repetir".
+ */
+export const SEM_DETALHES = 'Sem detalhes';
+
 export const nomeDaRefeicao = (t: TipoRefeicao) => REFEICOES.find((r) => r.tipo === t)?.nome ?? 'Refeição';
 
 export type Recipiente = 'garrafa' | 'squeeze' | 'copo' | 'garrafao';

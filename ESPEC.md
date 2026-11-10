@@ -148,6 +148,34 @@ desenhados como os de verdade, tudo como "nós", telas enxutas):
 
 Ainda na fila: "Como foi a semana", medalhas, foto no lugar das iniciais.
 
+### Lembrar e registrar sem esforço (10/11/2026)
+
+O uso real dos dois primeiros dias (7 registros de água, só 3 refeições,
+nenhuma caloria) mostrou onde estava o atrito.
+
+- **Lembretes no calendário do celular** (Ajustes → "Lembretes no celular"):
+  o app gera um arquivo `.ics` com eventos que se repetem **todo dia**, cada
+  um com o aviso na hora (`VALARM`): as refeições do plano salvo e a água de
+  1 em 1, 2 em 2 ou 3 em 3 horas, das 8h às 20h. Quem avisa é o calendário
+  do celular. Mesmo molde do app de finanças: `GET
+  /api/pessoas/:id/lembretes.ics`, servido `inline` (no iPhone abre direto
+  "Adicionar ao calendário"), horários em UTC (Brasília é UTC−3 fixo).
+  Cada lembrete tem sempre o mesmo `UID`: adicionar de novo depois de mudar
+  um horário atualiza em vez de duplicar. Trocar o intervalo da água ou tirar
+  uma refeição do plano **não apaga** os lembretes antigos: isso é feito no
+  calendário. Não é assinatura automática, pelo mesmo motivo do app de
+  finanças (precisaria de um endereço sem login).
+- **Registrar refeição com um toque**: refeição do plano ainda sem registro
+  (próxima, atrasada ou de um dia passado) mostra **o de sempre** (o que a
+  pessoa mais come naquela refeição), **Só marcar** e **Escrever**. Hora:
+  agora, se é a próxima de hoje; a do plano, se já passou do horário ou é
+  outro dia. Todos têm "Desfazer" no aviso.
+- **Só marcar** grava a descrição fixa `Sem detalhes` (a coluna é
+  obrigatória): a tela mostra apagado, com "toque para contar o que comeu";
+  abrir traz o campo vazio; e ela não entra nas sugestões de "Repetir".
+- **Calorias somem do formulário** para quem não ligou a meta de calorias em
+  Ajustes (continuam aparecendo ao editar uma refeição que já tem).
+
 ## Infraestrutura
 
 Igual ao `nossoap`: Worker + D1 + Access, plano gratuito, site embutido no

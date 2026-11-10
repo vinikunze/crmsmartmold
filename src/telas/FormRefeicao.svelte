@@ -5,7 +5,7 @@
   import { untrack } from 'svelte';
   import { Trash, Users } from '@lucide/svelte';
   import type { Refeicao, TipoRefeicao } from '../../shared/tipos';
-  import { REFEICOES } from '../../shared/tipos';
+  import { REFEICOES, SEM_DETALHES } from '../../shared/tipos';
   import { horaAgora, horaValida, diaValido } from '../../shared/datas';
   import { tipoPelaHora, maisComidos } from '../../shared/sugestoes';
   import { estado, type Gaveta } from '../lib/estado.svelte';
@@ -27,7 +27,9 @@
   /** Para quem: ids das pessoas. Editando, é sempre a dona da refeição. */
   let quem = $state<number[]>([donoInicial]);
   let tipo = $state<TipoRefeicao>(base?.tipo ?? inicio?.refeicao ?? tipoPelaHora(horaInicial, estado.planoDe(donoInicial)));
-  let descricao = $state(base?.descricao ?? '');
+  // Refeição que foi "só marcada": abre com o campo vazio, pronto para contar o que comeu.
+  const soMarcada = base?.descricao === SEM_DETALHES;
+  let descricao = $state(soMarcada ? '' : base?.descricao ?? '');
   let kcal = $state<number | null>(base?.kcal ?? null);
   let obs = $state(base?.obs ?? '');
   let salvando = $state(false);
@@ -37,6 +39,10 @@
   const chaves = new Map<number, string>();
 
   const osDois = $derived(quem.length > 1);
+  // Calorias só aparecem para quem ligou a meta em Ajustes (ou se a refeição já tem).
+  const mostrarKcal = $derived(
+    (base?.kcal ?? null) !== null || estado.pessoas.some((p) => quem.includes(p.id) && p.meta_kcal !== null),
+  );
   const sugestoes = $derived(
     maisComidos(estado.refeicoes, quem[0], tipo).filter((s) => s.trim().toLowerCase() !== descricao.trim().toLowerCase()),
   );
@@ -48,13 +54,14 @@
   async function salvar(e: SubmitEvent) {
     e.preventDefault();
     erro = '';
-    if (!descricao.trim()) return (erro = 'Conte o que comeu.');
+    // Só marcada e ainda sem texto: continua só marcada (dá para acertar só a hora).
+    if (!descricao.trim() && !soMarcada) return (erro = 'Conte o que comeu.');
     if (!diaValido(dia)) return (erro = 'Escolha o dia.');
     if (dia > hojeDia) return (erro = 'Ainda não chegou esse dia.');
     if (!horaValida(hora)) return (erro = 'Escolha o horário.');
     if (kcal !== null && (!Number.isInteger(kcal) || kcal < 1 || kcal > 5000)) return (erro = 'Calorias vão de 1 a 5000.');
     salvando = true;
-    const dados = { dia, hora, tipo, descricao: descricao.trim(), kcal, obs: obs.trim() || null };
+    const dados = { dia, hora, tipo, descricao: descricao.trim() || SEM_DETALHES, kcal: mostrarKcal ? kcal : null, obs: obs.trim() || null };
     try {
       if (base) {
         estado.guardarRefeicao(await api.editarRefeicao(base.id, dados));
@@ -66,7 +73,8 @@
           estado.guardarRefeicao(r);
         }
         const nome = REFEICOES.find((r) => r.tipo === tipo)?.nome ?? 'Refeição';
-        estado.avisar(osDois ? `${nome} lançado para os dois.` : `${nome} registrado.`);
+        const a = tipo === 'ceia' ? 'a' : 'o'; // "Ceia registrada"
+        estado.avisar(osDois ? `${nome} lançad${a} para os dois.` : `${nome} registrad${a}.`);
       }
       fechar();
     } catch (e) {
@@ -154,13 +162,15 @@
     </div>
   {/if}
 
-  <div class="dupla">
+  <div class:dupla={mostrarKcal}>
+    {#if mostrarKcal}
+      <label class="campo">
+        <span>Calorias (opcional)</span>
+        <input class="entrada num" inputmode="numeric" autocomplete="off" placeholder="kcal" value={kcal ?? ''} oninput={lerKcal} />
+      </label>
+    {/if}
     <label class="campo">
-      <span>Calorias (opcional)</span>
-      <input class="entrada num" inputmode="numeric" autocomplete="off" placeholder="kcal" value={kcal ?? ''} oninput={lerKcal} />
-    </label>
-    <label class="campo">
-      <span>Observação</span>
+      <span>Observação (opcional)</span>
       <input class="entrada" bind:value={obs} maxlength="300" placeholder="Ex.: comi com pressa" />
     </label>
   </div>

@@ -2,6 +2,7 @@
 // ficam na memória: cada mudança atualiza aqui na hora, sem recarregar tudo.
 
 import type { Agua, Horario, Pessoa, Refeicao, TipoRefeicao } from '../../shared/tipos';
+import { nomeDaRefeicao } from '../../shared/tipos';
 import { hoje, horaAgora, somarDias, diasEntre } from '../../shared/datas';
 import { api, novaChave } from './api';
 import { formatarMl } from '../../shared/resumo';
@@ -127,6 +128,29 @@ class Estado {
       await api.apagarAgua(a.id);
       this.agua = this.agua.filter((x) => x.id !== a.id);
       this.avisar(`${formatarMl(a.ml)} de água retirados.`);
+    } catch (e) {
+      this.erro(e);
+    }
+  }
+
+  /** Refeição com um toque, sem abrir o formulário. Dá para desfazer no aviso. */
+  async registrarRapido(pessoaId: number, dia: string, hora: string, tipo: TipoRefeicao, descricao: string) {
+    try {
+      const r = await api.criarRefeicao({ chave: novaChave(), pessoa_id: pessoaId, dia, hora, tipo, descricao, kcal: null, obs: null });
+      this.guardarRefeicao(r);
+      this.avisar(`${nomeDaRefeicao(tipo)} registrad${tipo === 'ceia' ? 'a' : 'o'}.`, {
+        acao: {
+          rotulo: 'Desfazer',
+          fazer: async () => {
+            try {
+              await api.apagarRefeicao(r.id);
+              this.tirarRefeicao(r.id);
+            } catch (e) {
+              this.erro(e);
+            }
+          },
+        },
+      });
     } catch (e) {
       this.erro(e);
     }

@@ -69,4 +69,8 @@ export const api = {
     pedir<Horario[]>('PUT', `pessoas/${id}/horarios`, { horarios }),
 };
 
+/** Link que o navegador abre direto (arquivo .ics), com o login do Access. */
+export const linkLembretes = (pessoaId: number, refeicoes: boolean, agua: number) =>
+  `/api/pessoas/${pessoaId}/lembretes.ics?refeicoes=${refeicoes ? 1 : 0}&agua=${agua}`;
+
 export const novaChave = () => crypto.randomUUID();
