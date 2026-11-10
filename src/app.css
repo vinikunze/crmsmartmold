@@ -56,7 +56,14 @@
   --alerta-suave: #fdebdc;
   --vermelho: #a83a28;     /* apagar, erro */
   --vermelho-suave: #f8e4df;
-  --sol: #f5c26b;          /* o ponto do logo: só decoração */
+  /* Dourado: a cor do casal nos outros apps. Aqui é a cor de CONQUISTA:
+     meta batida, sequência, troféu, o ponto do logo. Nunca ação nem alerta. */
+  --ouro: #c9a227;         /* decoração (2,4:1 no branco: sempre com contorno ou texto junto) */
+  --ouro-contorno: #a07a12; /* contorno das peças douradas (4:1 no branco) */
+  --ouro-claro: #e6c773;   /* dourado sobre o azul do destaque */
+  --ouro-texto: #7a5c0f;   /* texto dourado (5,3:1 até sobre o dourado suave) */
+  --ouro-suave: #f5ecd2;
+  --sol: var(--ouro);      /* o ponto do logo */
 
   --foco: #2b6a47;
   --sombra: 0 1px 2px rgb(23 38 31 / 0.06), 0 1px 3px rgb(23 38 31 / 0.04);
@@ -264,10 +271,19 @@ textarea.entrada { padding: var(--esp-3); min-height: 84px; resize: vertical; }
 @keyframes encher { from { transform: scaleX(0); } }
 @keyframes surgir { from { opacity: 0; transform: translateY(6px); } }
 
-/* Cor de cada pessoa (iniciais), como no app de finanças: Vini azul, Sophia
-   rosa. Branco sobre elas passa de 5:1. */
-.cor-pessoa-0 { background: #2a66a8; }
-.cor-pessoa-1 { background: #b0457a; }
+/* Cor de cada pessoa, escolhida em Ajustes (padrão como no app de finanças:
+   Vini azul, Sophia rosa). Pinta as iniciais e os detalhes da garrafa.
+   --p: no claro é o tom forte (branco sobre ele passa de 4,6:1); no escuro é
+   o tom claro, com texto escuro por cima. --p-clara: sempre o tom claro, para
+   a garrafa grande sobre o destaque azul. */
+.cor-azul { --p: #2a66a8; --p-clara: #a9d4ff; }
+.cor-rosa { --p: #b0457a; --p-clara: #ffb3d1; }
+.cor-verde { --p: #2b7a4f; --p-clara: #9fe3b8; }
+.cor-roxo { --p: #6a46b0; --p-clara: #cdb8ff; }
+.cor-laranja { --p: #b85a14; --p-clara: #ffc08a; }
+.cor-grafite { --p: #47525c; --p-clara: #dfe5ea; }
+[class*='cor-'] { --p-sobre: #ffffff; }
+:root[data-tema='escuro'] [class*='cor-'] { --p: var(--p-clara); --p-sobre: #0d1526; }
 
 /* Cor de cada refeição: ícone forte sobre fundo suave (todos acima de 4:1).
    Usada nos quadradinhos de ícone da linha do dia e do formulário. */
@@ -287,48 +303,54 @@ textarea.entrada { padding: var(--esp-3); min-height: 84px; resize: vertical; }
 .cab-cartao .direita { margin-left: auto; text-align: right; }
 
 /* ---------- Tema escuro ----------
-   Azul-noite, para usar à noite. Liga sozinho quando o celular está no modo
-   escuro, ou fixo por Ajustes → Aparência (o atributo data-tema é posto pelo
-   script do index.html). Mesmas funções de cor do claro: verde é ação, azul
-   é água. No escuro o verde e o azul ficam claros, e o texto SOBRE o botão
-   verde fica escuro. Todos os textos passam de 5:1; ícones de refeição de 6:1. */
+   Azul-marinho com dourado, como o "nosso ap.". Liga sozinho quando o
+   celular está no modo escuro, ou fixo por Ajustes → Aparência (o atributo
+   data-tema é posto pelo script do index.html). Mesmas funções de cor do
+   claro: verde é ação, azul é água, dourado é conquista. No escuro o verde e
+   o azul ficam claros, e o texto SOBRE o botão verde fica escuro. Todos os
+   textos passam de 5:1; ícones de refeição de 6:1. */
 :root[data-tema='escuro'] {
   color-scheme: dark;
-  --fundo: #0f1a22;
-  --superficie: #16232e;
-  --superficie-2: #1e2f3c;
-  --texto: #e9f0f2;
-  --texto-2: #bccad2;
-  --texto-3: #93a5b0;
-  --borda: #263949;
+  --fundo: #0d1526;
+  --superficie: #151f36;
+  --superficie-2: #1e2a45;
+  --texto: #eef1f6;
+  --texto-2: #c1c9d8;
+  --texto-3: #97a2b8;
+  --borda: #2b3a5a;
 
   --marca: #7fd3a2;
   --marca-forte: #a6e4bf;
-  --marca-suave: #1b3a2b;
-  --sobre-marca: #0f1a22;
+  --marca-suave: #173a2c;
+  --sobre-marca: #0d1526;
 
   --agua: #8cc8f5;
   --agua-barra: #4fa3e3;
-  --agua-suave: #16324a;
+  --agua-suave: #16305a;
 
   --alerta: #f2a65e;
   --alerta-suave: #3b2712;
   --vermelho: #f4a08c;
   --vermelho-suave: #3a1d17;
 
+  --ouro: #e6c773;
+  --ouro-contorno: #e6c773;
+  --ouro-texto: #e6c773;
+  --ouro-suave: #33290f;
+
   --foco: #8cc8f5;
   --sombra: 0 1px 2px rgb(0 0 0 / 0.35);
   --sombra-alta: 0 16px 48px rgb(0 0 0 / 0.5);
-  --heroi: linear-gradient(135deg, #174a7a 0%, #0f3352 100%);
+  --heroi: linear-gradient(135deg, #1b4f8a 0%, #102f5c 100%);
 
   --linha-feita: #2f4a3c;
   --kcal: #f39a68;
-  --dica-fundo: #e9f0f2;
-  --sobre-dica: #0f1a22;
+  --dica-fundo: #eef1f6;
+  --sobre-dica: #0d1526;
   --aviso-fundo: #2c4a3a;
-  --sobre-aviso: #e9f0f2;
+  --sobre-aviso: #eef1f6;
   --erro-fundo: #f4a08c;
-  --sobre-erro: #0f1a22;
+  --sobre-erro: #0d1526;
   --perigo-hover: #4a2219;
   --veu: rgb(0 0 0 / 0.55);
 }

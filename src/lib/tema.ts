@@ -6,7 +6,7 @@
 export type EscolhaTema = 'auto' | 'claro' | 'escuro';
 
 const CHAVE = 'emdia:tema';
-const COR_BARRA = { claro: '#F5F7F2', escuro: '#0F1A22' } as const;
+const COR_BARRA = { claro: '#F5F7F2', escuro: '#0D1526' } as const;
 const escuroNoCelular = window.matchMedia('(prefers-color-scheme: dark)');
 
 export function escolhaAtual(): EscolhaTema {
